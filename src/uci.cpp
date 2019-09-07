@@ -213,7 +213,7 @@ void UCI::loop(int argc, char* argv[]) {
       if (    token == "quit"
           ||  token == "stop")
 	{
-	  writeLearningFile(HashTableType::global);
+	  writeLearningFile(HashTableType::global);//from Kelly
 	  Threads.stop = true;
 	}
       // The GUI sends 'ponderhit' to tell us the user has played the expected move.
