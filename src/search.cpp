@@ -242,7 +242,7 @@ void MainThread::search() {
     useLearning = true;
   }
   //Kelly end
-  openingVariety = Options["Variety"];//from Sugar
+  openingVariety = Options["Opening variety"];//from Sugar
   if (rootMoves.empty())
   {
       rootMoves.emplace_back(MOVE_NONE);
