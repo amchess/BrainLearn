@@ -207,23 +207,26 @@ void insertIntoOrUpdateLearningTable(LearningFileEntry& fileExpEntry,LearningHas
     while (it1 != it2)
     {
       Node node = &(it1->second);
-      if ((node->hashKey == fileExpEntry.hashKey) &&
-	  (((node->latestMoveInfo.move == fileExpEntry.move) && (node->latestMoveInfo.depth <= fileExpEntry.depth))
-	      ||
-	   ((node->latestMoveInfo.move != fileExpEntry.move) &&
-	    ((node->latestMoveInfo.depth < fileExpEntry.depth) || ((node->latestMoveInfo.depth == fileExpEntry.depth) && (node->latestMoveInfo.score <= fileExpEntry.score ))))
-	  )
-	 )
-      { // Return the HashTable's node updated
- 	isNewNode = false;
-	//update lateChild begin
-	node->latestMoveInfo.move = fileExpEntry.move;
-	node->latestMoveInfo.score = fileExpEntry.score;
-	node->latestMoveInfo.depth = fileExpEntry.depth;
-	//update lateChild end
-	//exit the position
-	break;
-      }
+      if (node->hashKey == fileExpEntry.hashKey)
+	{
+	  isNewNode = false;
+	  if(
+	    (((node->latestMoveInfo.move == fileExpEntry.move) && (node->latestMoveInfo.depth <= fileExpEntry.depth))
+		||
+	     ((node->latestMoveInfo.move != fileExpEntry.move) &&
+	      ((node->latestMoveInfo.depth < fileExpEntry.depth) || ((node->latestMoveInfo.depth == fileExpEntry.depth) && (node->latestMoveInfo.score <= fileExpEntry.score ))))
+	    )
+	   )
+	  { // Return the HashTable's node updated
+	    //update lateChild begin
+	    node->latestMoveInfo.move = fileExpEntry.move;
+	    node->latestMoveInfo.score = fileExpEntry.score;
+	    node->latestMoveInfo.depth = fileExpEntry.depth;
+	    //update lateChild end
+	    //exit the position
+	    break;
+	  }
+	}
       it1++;
     }
 
