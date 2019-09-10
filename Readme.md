@@ -12,7 +12,7 @@ This distribution of BrainLearn consists of the following files:
 
 ## UCI parameters
 
-BrainLearn hash the same options as BrainFish, but it implement a persisted learning algorithm, managing a file named experience.bin.
+BrainLearn hash the same options as BrainFish, but it implements a persisted learning algorithm, managing a file named experience.bin.
 
 It is a collection of one or more positions stored with the following format (similar to in memory Stockfish Transposition Table):
 
