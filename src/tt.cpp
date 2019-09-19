@@ -223,9 +223,9 @@ void insertIntoOrUpdateLearningTable(LearningFileEntry& fileExpEntry,LearningHas
 	    node->latestMoveInfo.score = fileExpEntry.score;
 	    node->latestMoveInfo.depth = fileExpEntry.depth;
 	    //update lateChild end
-	    //exit the position
-	    break;
 	  }
+	  //exit the position
+	  break;
 	}
       it1++;
     }
@@ -270,25 +270,28 @@ Node getNodeFromHT(Key key,HashTableType hashTableType)
 
 void writeLearningFile(HashTableType hashTableType)
 {
-  std::ofstream outputFile ("experience.bin", std::ofstream::trunc | std::ofstream::binary);
   LearningHashTable currentLearningHT;
   currentLearningHT=experienceHT;
   if(hashTableType==HashTableType::global)
     {
       currentLearningHT=globalLearningHT;
     }
-  for(auto& it:currentLearningHT)
-  {
-    LearningFileEntry currentFileExpEntry;
-    NodeInfo currentNodeInfo=it.second;
-    MoveInfo currentLatestMoveInfo=currentNodeInfo.latestMoveInfo;
-    currentFileExpEntry.depth = currentLatestMoveInfo.depth;
-    currentFileExpEntry.hashKey = it.first;
-    currentFileExpEntry.move = currentLatestMoveInfo.move;
-    currentFileExpEntry.score = currentLatestMoveInfo.score;
-    outputFile.write((char*)&currentFileExpEntry, sizeof(currentFileExpEntry));
-  }
-  outputFile.close();
+  if(!currentLearningHT.empty())
+    {
+      std::ofstream outputFile ("experience.bin", std::ofstream::trunc | std::ofstream::binary);
+      for(auto& it:currentLearningHT)
+      {
+        LearningFileEntry currentFileExpEntry;
+        NodeInfo currentNodeInfo=it.second;
+        MoveInfo currentLatestMoveInfo=currentNodeInfo.latestMoveInfo;
+        currentFileExpEntry.depth = currentLatestMoveInfo.depth;
+        currentFileExpEntry.hashKey = it.first;
+        currentFileExpEntry.move = currentLatestMoveInfo.move;
+        currentFileExpEntry.score = currentLatestMoveInfo.score;
+        outputFile.write((char*)&currentFileExpEntry, sizeof(currentFileExpEntry));
+      }
+      outputFile.close();
+    }
 }
 
 void loadSlaveLearningFilesIntoLearningTables()

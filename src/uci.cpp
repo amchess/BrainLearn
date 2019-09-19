@@ -48,7 +48,7 @@ namespace {
   // The function sets up the position described in the given FEN string ("fen")
   // or the starting position ("startpos") and then makes the moves given in the
   // following move list ("moves").
-    
+
   void position(Position& pos, istringstream& is, StateListPtr& states) {
 
     Move m;
@@ -165,9 +165,9 @@ namespace {
         else if (token == "setoption")  setoption(is);
         else if (token == "position")   position(pos, is, states);
         else if (token == "ucinewgame") {
-			Search::clear(); elapsed = now(); 
 			setStartPoint(); //Kelly
-			} // Search::clear() may take some while
+			Search::clear(); elapsed = now(); // Search::clear() may take some while
+			} 
     }
 
     elapsed = now() - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
@@ -233,8 +233,8 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "position")   position(pos, is, states);
       else if (token == "ucinewgame")
 	  {
-	    Search::clear();
 	    setStartPoint(); //Kelly
+	    Search::clear();
 	  }
       else if (token == "isready")    sync_cout << "readyok" << sync_endl;
 
