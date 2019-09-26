@@ -61,7 +61,7 @@ constexpr Score Bonus[][RANK_NB][int(FILE_NB) / 2] = {
   { // Rook
    { S(-24, -2), S(-13,-6), S(-7, -3), S( 2,-2) },
    { S(-18,-10), S(-10,-7), S(-5,  1), S( 9, 0) },
-   { S(-21, 10), S( -7,-4), S( 3,  2), S(-1,-2) },
+   { S(-21, 10), S( -7,-4), S( 3,  2), S( 7,-2) },
    { S(-13, -5), S( -5, 2), S(-4, -8), S(-6, 8) },
    { S(-24, -8), S(-12, 5), S(-1,  4), S( 6,-9) },
    { S(-24,  3), S( -4,-2), S( 4,-10), S(10, 7) },
@@ -119,7 +119,7 @@ void init() {
 
       for (Square s = SQ_A1; s <= SQ_H8; ++s)
       {
-          File f = std::min(file_of(s), ~file_of(s));
+          File f = map_to_queenside(file_of(s));
           psq[ pc][ s] = score + (type_of(pc) == PAWN ? PBonus[rank_of(s)][file_of(s)]
                                                       : Bonus[pc][rank_of(s)][f]);
           psq[~pc][~s] = -psq[pc][s];

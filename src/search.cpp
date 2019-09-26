@@ -771,6 +771,12 @@ namespace {
 	    enabledLearningProbe = true;
 	    expTTHit = true;
 		
+		if(depth - ss->ply*ONE_PLY < 16)
+		{
+	      expTTMove = node->latestMoveInfo.move;
+//		  thisThread->tbHits.fetch_add(1, std::memory_order_relaxed);
+		}
+		
 	    if (!haveTTMove)
 	    {
 		ttMove = node->latestMoveInfo.move;
@@ -781,6 +787,9 @@ namespace {
 	      expTTValue = node->latestMoveInfo.score;
 	      updatedLearning = true;
 	    }
+		if (node->latestMoveInfo.depth == DEPTH_ZERO)
+			updatedLearning = false;
+	    
 
 	    if (!PvNode && updatedLearning && moveInfo.depth >= depth)
 	    {
@@ -874,6 +883,9 @@ namespace {
         ss->staticEval = eval = tte->eval();
         if (eval == VALUE_NONE)
             ss->staticEval = eval = evaluate(pos);
+
+        if (eval == VALUE_DRAW)
+            eval = value_draw(depth, thisThread);
 
         // Can ttValue be used as a better position evaluation?
         if (    ttValue != VALUE_NONE

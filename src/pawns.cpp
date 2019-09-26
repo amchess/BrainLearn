@@ -130,8 +130,8 @@ namespace {
         // Score this pawn
         if (support | phalanx)
         {
-            int v =  Connected[r] * (phalanx ? 3 : 2) / (opposed ? 2 : 1)
-                   + 17 * popcount(support);
+            int v =  Connected[r] * (2 + bool(phalanx) - opposed)
+                   + 21 * popcount(support);
 
             score += make_score(v, v * (r - 2) / 4);
         }
@@ -197,7 +197,7 @@ Score Entry::evaluate_shelter(const Position& pos, Square ksq) {
       b = theirPawns & file_bb(f);
       int theirRank = b ? relative_rank(Us, frontmost_sq(Them, b)) : 0;
 
-      int d = std::min(f, ~f);
+      File d = map_to_queenside(f);
       bonus += make_score(ShelterStrength[d][ourRank], 0);
 
       if (ourRank && (ourRank == theirRank - 1))
