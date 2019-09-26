@@ -119,7 +119,9 @@ struct MoveInfo
 struct NodeInfo
 {
 	Key hashKey;
-	MoveInfo latestMoveInfo;
+	MoveInfo latestMoveInfo;	
+	MoveInfo siblingMoveInfo[25];
+	int siblings = 0;
 };
 
 

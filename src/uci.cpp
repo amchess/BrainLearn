@@ -37,6 +37,7 @@ using namespace std;
 
 extern vector<string> setup_bench(const Position&, istream&);
 
+int maximumPly = 0; //from Kelly
 
 namespace {
 
@@ -69,11 +70,26 @@ namespace {
     states = StateListPtr(new std::deque<StateInfo>(1)); // Drop old and create a new one
     pos.set(fen, Options["UCI_Chess960"], &states->back(), Threads.main());
 
+    
+	int plies = 0;//from Kelly
+	
     // Parse move list (if any)
     while (is >> token && (m = UCI::to_move(pos, token)) != MOVE_NONE)
     {
+		//kelly begin	
+		plies++;
+		if (plies > maximumPly)
+		{
+			LearningFileEntry currentLearningEntry;
+			currentLearningEntry.depth = DEPTH_ZERO;
+			currentLearningEntry.hashKey = pos.key();
+			currentLearningEntry.move = m;
+			currentLearningEntry.score = VALUE_NONE;
+			insertIntoOrUpdateLearningTable(currentLearningEntry,globalLearningHT);
+			maximumPly = plies;
+		}
         states->emplace_back();
-		pos.do_move(m, states->back());
+        pos.do_move(m, states->back());
     }
   }
 
@@ -165,7 +181,10 @@ namespace {
         else if (token == "setoption")  setoption(is);
         else if (token == "position")   position(pos, is, states);
         else if (token == "ucinewgame") {
-			setStartPoint(); //Kelly
+			//from Kelly begin
+			maximumPly = 0;
+			setStartPoint(); 
+			//from Kelly end
 			Search::clear(); elapsed = now(); // Search::clear() may take some while
 			} 
     }
@@ -214,9 +233,11 @@ void UCI::loop(int argc, char* argv[]) {
                 ||  token == "stop")
       	{
       	  if (token == "quit")
-	    {
+	    //from Kelly begin
+		{
 	     writeLearningFile(HashTableType::global);//from Kelly
 	    }
+		//from Kelly end
       	    Threads.stop = true;
       	}
       // The GUI sends 'ponderhit' to tell us the user has played the expected move.
@@ -236,16 +257,20 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "position")   position(pos, is, states);
       else if (token == "ucinewgame")
 	  {
-	    setStartPoint(); //Kelly
+		//from Kelly begin
+		maximumPly = 0;
+	    setStartPoint(); 
+		//from Kelly end
 	    Search::clear();
 	  }
       else if (token == "isready")    sync_cout << "readyok" << sync_endl;
 
       // Additional custom non-UCI commands, mainly for debugging
-      else if (token == "flip")  pos.flip();
-      else if (token == "bench") bench(pos, is, states);
-      else if (token == "d")     sync_cout << pos << sync_endl;
-      else if (token == "eval")  sync_cout << Eval::trace(pos) << sync_endl;
+      else if (token == "flip")     pos.flip();
+      else if (token == "bench")    bench(pos, is, states);
+      else if (token == "d")        sync_cout << pos << sync_endl;
+      else if (token == "eval")     sync_cout << Eval::trace(pos) << sync_endl;
+      else if (token == "compiler") sync_cout << compiler_info() << sync_endl;
       else
           sync_cout << "Unknown command: " << cmd << sync_endl;
 
