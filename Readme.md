@@ -20,6 +20,7 @@ It is a collection of one or more positions stored with the following format (si
 - _board signature (hash key)_
 - _best move depth_
 - _best move score_
+- _best move performance_ , the new parameter calculated based on pattern recognition concept via a private offline learning application. Not having it, the default performance is 0 (not applied). This new learning algorithm is a lot stronger than the previous one as demostrate here: [Graphical result](https://github.com/amchess/BrainLearn/blob/master/Tests/6-5.jpg)
 
 This file is loaded in an hashtable at the engine load and updated each time the engine receive quit or stop uci command.
 When BrainLearn starts a new game or when we have max 8 pieces on the chessboard, the learning is activated and the hash table updated each time the engine has a best score
@@ -38,11 +39,57 @@ N.B.
 
 Because of disk access, to be effective, the learning must be made at no bullet time controls (less than 5 minutes/game).
 
+### Live Book section (thanks to Eman's author Khalid Omar for windows builds)
+
+#### Live Book (checkbox)
+
+_Boolean, Default: False_ If activated, the engine uses the livebook as primary choice.
+
+#### Live Book URL
+The default is the online chessdb [https://www.chessdb.cn/queryc_en/](https://www.chessdb.cn/queryc_en/), a wonderful project by noobpwnftw (thanks to him!)
+ 
+[https://github.com/noobpwnftw/chessdb](https://github.com/noobpwnftw/chessdb)
+[http://talkchess.com/forum3/viewtopic.php?f=2&t=71764&hilit=chessdb](http://talkchess.com/forum3/viewtopic.php?f=2&t=71764&hilit=chessdb)
+
+The private application can also learn from this live db.
+
+#### Live Book Timeout
+
+_Default 1500, min 0, max 10000_
+
+#### Live Book Diversity
+
+_Boolean, Default: False_ If activated, the engine varies its play, reducing conversely its strength because already the live chessdb is very large.
+
+#### Live Book Contribute
+
+_Boolean, Default: False_ If activated, the engine sends a move, not in live chessdb, in its queue to be analysed. In this manner, we have a kind of learning cloud.
+
+
 ### Opening variety
 
 _Integer, Default: 0, Min: 0, Max: 40_
 To play different opening lines from default (0), if not from book (see below).
 Higher variety -> more probable loss of ELO
+
+## pgn_to_bl_converter
+
+Converting pgn to brainlearn format is really simple.
+
+Requirements
+1. Download cuteChess gui
+2. Download brainlearn
+3. Download stockfish or equivalent
+3. Download the pgn files you want to convert
+
+In Cute Chess, set a tournament according to the photo in this link:
+[CuteChess Settings](https://github.com/amchess/BrainLearn/tree/master/doc/pgn_to_bl.PNG)
+
+- Add the 2 engines (One should be brainlearn)
+
+-start a tournament with brainlearn and any other engine. It will convert all the games in the pgn file and save them to game.bin
+
+Note: We recommend you use games from high quality play.
 
 ## Terms of use
 

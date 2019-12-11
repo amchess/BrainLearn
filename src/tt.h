@@ -41,7 +41,7 @@ struct TTEntry {
   Move  move()  const { return (Move )move16; }
   Value value() const { return (Value)value16; }
   Value eval()  const { return (Value)eval16; }
-  Depth depth() const { return (Depth)(depth8 * int(ONE_PLY)) + DEPTH_OFFSET; }
+  Depth depth() const { return (Depth)depth8 + DEPTH_OFFSET; }
   bool is_pv() const { return (bool)(genBound8 & 0x4); }
   Bound bound() const { return (Bound)(genBound8 & 0x3); }
   void save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev);
@@ -104,15 +104,17 @@ enum class HashTableType { global, experience };
 struct LearningFileEntry
 {
 	Key hashKey = 0;
-	Depth depth = DEPTH_ZERO;
+	Depth depth = 0;
 	Value score = VALUE_NONE;
 	Move move = MOVE_NONE;
+	int performance = 0;
 };
 struct MoveInfo
 {
 	Move move = MOVE_NONE;
-	Depth depth = DEPTH_ZERO;
+	Depth depth = 0;
 	Value score = VALUE_NONE;
+	int performance = 0;
 };
 
 

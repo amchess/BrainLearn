@@ -104,6 +104,11 @@ extern LimitsType Limits;
 void init();
 void clear();
 
+//livebook begin
+void setLiveBookURL(const std::string &newURL);
+void setLiveBookTimeout(size_t newTimeoutMS);
+//livebook end
+
 } // namespace Search
 
 #endif // #ifndef SEARCH_H_INCLUDED

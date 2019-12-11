@@ -147,9 +147,9 @@ endif
 
 ### 3.1 Selecting compiler (default = gcc)
 
-CXXFLAGS += -Wall -Wcast-qual -fno-exceptions -std=c++11 $(EXTRACXXFLAGS)
+CXXFLAGS += -Wall -Wcast-qual -std=c++11 $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++11
-LDFLAGS += $(EXTRALDFLAGS)
+LDFLAGS += -lcurl -lws2_32 $(EXTRALDFLAGS)
 
 ifeq ($(COMP),)
 	COMP=gcc
@@ -198,6 +198,7 @@ ifeq ($(COMP),mingw)
 
 	CXXFLAGS += -Wextra -Wshadow
 	LDFLAGS += -static
+
 endif
 
 ifeq ($(COMP),icc)
@@ -290,7 +291,7 @@ ifeq ($(optimize),yes)
 			CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
 		endif
 	endif
-	
+
 	ifeq ($(comp),$(filter $(comp),gcc clang icc))
 		ifeq ($(KERNEL),Darwin)
 			CXXFLAGS += -mdynamic-no-pic

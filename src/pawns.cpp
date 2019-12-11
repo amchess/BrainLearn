@@ -56,10 +56,10 @@ namespace {
   // is behind our king. Note that UnblockedStorm[0][1-2] accommodate opponent pawn
   // on edge, likely blocked by our king.
   constexpr Value UnblockedStorm[int(FILE_NB) / 2][RANK_NB] = {
-    { V( 89), V(-285), V(-185), V(93), V(57), V( 45), V( 51) },
-    { V( 44), V( -18), V( 123), V(46), V(39), V( -7), V( 23) },
-    { V(  4), V(  52), V( 162), V(37), V( 7), V(-14), V( -2) },
-    { V(-10), V( -14), V(  90), V(15), V( 2), V( -7), V(-16) }
+    { V( 85), V(-289), V(-166), V(97), V(50), V( 45), V( 50) },
+    { V( 46), V( -25), V( 122), V(45), V(37), V(-10), V( 20) },
+    { V( -6), V(  51), V( 168), V(34), V(-2), V(-22), V(-14) },
+    { V(-15), V( -11), V( 101), V( 4), V(11), V(-15), V(-29) }
   };
 
   #undef S
@@ -69,12 +69,12 @@ namespace {
   Score evaluate(const Position& pos, Pawns::Entry* e) {
 
     constexpr Color     Them = (Us == WHITE ? BLACK : WHITE);
-    constexpr Direction Up   = (Us == WHITE ? NORTH : SOUTH);
+    constexpr Direction Up   = pawn_push(Us);
 
-    Bitboard neighbours, stoppers, support, phalanx;
-    Bitboard lever, leverPush;
+    Bitboard neighbours, stoppers, support, phalanx, opposed;
+    Bitboard lever, leverPush, blocked;
     Square s;
-    bool opposed, backward, passed, doubled;
+    bool backward, passed, doubled;
     Score score = SCORE_ZERO;
     const Square* pl = pos.squares<PAWN>(Us);
 
@@ -83,9 +83,9 @@ namespace {
 
     Bitboard doubleAttackThem = pawn_double_attacks_bb<Them>(theirPawns);
 
-    e->passedPawns[Us] = e->pawnAttacksSpan[Us] = 0;
+    e->passedPawns[Us] = 0;
     e->kingSquares[Us] = SQ_NONE;
-    e->pawnAttacks[Us] = pawn_attacks_bb<Us>(ourPawns);
+    e->pawnAttacks[Us] = e->pawnAttacksSpan[Us] = pawn_attacks_bb<Us>(ourPawns);
 
     // Loop through all pawns of the current color and score each pawn
     while ((s = *pl++) != SQ_NONE)
@@ -94,10 +94,9 @@ namespace {
 
         Rank r = relative_rank(Us, s);
 
-        e->pawnAttacksSpan[Us] |= pawn_attack_span(Us, s);
-
         // Flag the pawn
         opposed    = theirPawns & forward_file_bb(Us, s);
+        blocked    = theirPawns & (s + Up);
         stoppers   = theirPawns & passed_pawn_span(Us, s);
         lever      = theirPawns & PawnAttacks[Us][s];
         leverPush  = theirPawns & PawnAttacks[Us][s + Up];
@@ -107,10 +106,13 @@ namespace {
         support    = neighbours & rank_bb(s - Up);
 
         // A pawn is backward when it is behind all pawns of the same color on
-        // the adjacent files and cannot safely advance. Phalanx and isolated
-        // pawns will be excluded when the pawn is scored.
-        backward =  !(neighbours & forward_ranks_bb(Them, s))
-                  && (stoppers & (leverPush | (s + Up)));
+        // the adjacent files and cannot safely advance.
+        backward =  !(neighbours & forward_ranks_bb(Them, s + Up))
+                  && (leverPush | blocked);
+
+        // Compute additional span if pawn is not backward nor blocked
+        if (!backward && !blocked)
+            e->pawnAttacksSpan[Us] |= pawn_attack_span(Us, s);
 
         // A pawn is passed if one of the three following conditions is true:
         // (a) there is no stoppers except some levers
@@ -119,7 +121,7 @@ namespace {
         passed =   !(stoppers ^ lever)
                 || (   !(stoppers ^ leverPush)
                     && popcount(phalanx) >= popcount(leverPush))
-                || (   stoppers == square_bb(s + Up) && r >= RANK_5
+                || (   stoppers == blocked && r >= RANK_5
                     && (shift<Up>(support) & ~(theirPawns | doubleAttackThem)));
 
         // Passed pawns will be properly scored later in evaluation when we have
@@ -130,16 +132,19 @@ namespace {
         // Score this pawn
         if (support | phalanx)
         {
-            int v =  Connected[r] * (2 + bool(phalanx) - opposed)
+            int v =  Connected[r] * (2 + bool(phalanx) - bool(opposed))
                    + 21 * popcount(support);
 
             score += make_score(v, v * (r - 2) / 4);
         }
+
         else if (!neighbours)
-            score -= Isolated + WeakUnopposed * !opposed;
+            score -=   Isolated
+                     + WeakUnopposed * !opposed;
 
         else if (backward)
-            score -= Backward + WeakUnopposed * !opposed;
+            score -=   Backward
+                     + WeakUnopposed * !opposed;
 
         if (!support)
             score -=   Doubled * doubled
@@ -219,21 +224,17 @@ Score Entry::do_king_safety(const Position& pos) {
   Square ksq = pos.square<KING>(Us);
   kingSquares[Us] = ksq;
   castlingRights[Us] = pos.castling_rights(Us);
+  auto compare = [](Score a, Score b) { return mg_value(a) < mg_value(b); };
 
-  Score shelters[3] = { evaluate_shelter<Us>(pos, ksq),
-                        make_score(-VALUE_INFINITE, 0),
-                        make_score(-VALUE_INFINITE, 0) };
+  Score shelter = evaluate_shelter<Us>(pos, ksq);
 
   // If we can castle use the bonus after castling if it is bigger
+
   if (pos.can_castle(Us & KING_SIDE))
-      shelters[1] = evaluate_shelter<Us>(pos, relative_square(Us, SQ_G1));
+      shelter = std::max(shelter, evaluate_shelter<Us>(pos, relative_square(Us, SQ_G1)), compare);
 
   if (pos.can_castle(Us & QUEEN_SIDE))
-      shelters[2] = evaluate_shelter<Us>(pos, relative_square(Us, SQ_C1));
-
-  for (int i : {1, 2})
-     if (mg_value(shelters[i]) > mg_value(shelters[0]))
-         shelters[0] = shelters[i];
+      shelter = std::max(shelter, evaluate_shelter<Us>(pos, relative_square(Us, SQ_C1)), compare);
 
   // In endgame we like to bring our king near our closest pawn
   Bitboard pawns = pos.pieces(Us, PAWN);
@@ -241,11 +242,10 @@ Score Entry::do_king_safety(const Position& pos) {
 
   if (pawns & PseudoAttacks[KING][ksq])
       minPawnDist = 1;
-
   else while (pawns)
       minPawnDist = std::min(minPawnDist, distance(ksq, pop_lsb(&pawns)));
 
-  return shelters[0] - make_score(0, 16 * minPawnDist);
+  return shelter - make_score(0, 16 * minPawnDist);
 }
 
 // Explicit template instantiation
