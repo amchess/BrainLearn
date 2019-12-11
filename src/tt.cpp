@@ -39,24 +39,22 @@ TranspositionTable TT; // Our global transposition table
 
 void TTEntry::save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev) {
 
-  assert(d / ONE_PLY * ONE_PLY == d);
-
   // Preserve any existing move for the same position
   if (m || (k >> 48) != key16)
       move16 = (uint16_t)m;
 
   // Overwrite less valuable entries
   if (  (k >> 48) != key16
-      ||(d - DEPTH_OFFSET) / ONE_PLY > depth8 - 4
+      || d - DEPTH_OFFSET > depth8 - 4
       || b == BOUND_EXACT)
   {
-      assert((d - DEPTH_OFFSET) / ONE_PLY >= 0);
+      assert(d >= DEPTH_OFFSET);
 
       key16     = (uint16_t)(k >> 48);
       value16   = (int16_t)v;
       eval16    = (int16_t)ev;
       genBound8 = (uint8_t)(TT.generation8 | uint8_t(pv) << 2 | b);
-      depth8    = (uint8_t)((d - DEPTH_OFFSET) / ONE_PLY);
+      depth8    = (uint8_t)(d - DEPTH_OFFSET);
   }
 }
 
@@ -170,10 +168,11 @@ void loadLearningFileIntoLearningTables(bool toDeleteBinFile) {
   while (loading)
   {
     LearningFileEntry currentInputLearningFileEntry;
-    currentInputLearningFileEntry.depth = DEPTH_ZERO;
+    currentInputLearningFileEntry.depth = 0;
     currentInputLearningFileEntry.hashKey = 0;
     currentInputLearningFileEntry.move = MOVE_NONE;
     currentInputLearningFileEntry.score = VALUE_NONE;
+    currentInputLearningFileEntry.performance = 0;
     inputLearningFile.read((char*)&currentInputLearningFileEntry, sizeof(currentInputLearningFileEntry));
     if (currentInputLearningFileEntry.hashKey)
     {
@@ -207,75 +206,96 @@ void insertIntoOrUpdateLearningTable(LearningFileEntry& fileExpEntry,LearningHas
     {
       Node node = &(it1->second);
       if (node->hashKey == fileExpEntry.hashKey)
+      {
+	isNewNode = false;
+	for(int k = 0; k <= node->siblings; k++)
 	{
-		isNewNode = false;
-		for(int k = 0; k <= node->siblings; k++)
-		{
-			if(k == node->siblings)
-			{
-				//update lateChild begin
-				node->siblingMoveInfo[k].move = fileExpEntry.move;	
-				node->siblingMoveInfo[k].score = fileExpEntry.score;
-				node->siblingMoveInfo[k].depth = fileExpEntry.depth;
-				//update lateChild end
-				node->siblings++;
-				//update lateChild end
-				if(
-					(((node->latestMoveInfo.move == node->siblingMoveInfo[k].move) && (node->latestMoveInfo.depth <= node->siblingMoveInfo[k].depth))
-					||
-					((node->latestMoveInfo.move != node->siblingMoveInfo[k].move) &&
-					((node->latestMoveInfo.depth < node->siblingMoveInfo[k].depth) || ((node->latestMoveInfo.depth == node->siblingMoveInfo[k].depth) && (node->latestMoveInfo.score <= node->siblingMoveInfo[k].score ))))
-					)
-				)
-				{// Return the HashTable's node updated
-					//update lateChild begin
-					node->latestMoveInfo.move = node->siblingMoveInfo[k].move;
-					node->latestMoveInfo.score = node->siblingMoveInfo[k].score;
-					node->latestMoveInfo.depth = node->siblingMoveInfo[k].depth;
-					//update lateChild end
-	    
-				}
-				//exit the sibling
-				break;
-			}
-			else
-			{
-				if(node->siblingMoveInfo[k].move == fileExpEntry.move)
-				{
-					if(((node->siblingMoveInfo[k].depth < fileExpEntry.depth))
-						|| ((node->siblingMoveInfo[k].depth == fileExpEntry.depth) && (node->siblingMoveInfo[k].score <= fileExpEntry.score ))
-						)
-					{ // Return the HashTable's node updated
-						//update lateChild begin
-						node->siblingMoveInfo[k].move = fileExpEntry.move;
-						node->siblingMoveInfo[k].score = fileExpEntry.score;
-						node->siblingMoveInfo[k].depth = fileExpEntry.depth;
-						//update lateChild end
-						if(
-							(((node->latestMoveInfo.move == node->siblingMoveInfo[k].move) && (node->latestMoveInfo.depth <= node->siblingMoveInfo[k].depth))
-							||
-							((node->latestMoveInfo.move != node->siblingMoveInfo[k].move) &&
-							((node->latestMoveInfo.depth < node->siblingMoveInfo[k].depth) || ((node->latestMoveInfo.depth == node->siblingMoveInfo[k].depth) && (node->latestMoveInfo.score <= node->siblingMoveInfo[k].score ))))
-						)
-						)
-						{// Return the HashTable's node updated
-							//update lateChild begin
-							node->latestMoveInfo.move = node->siblingMoveInfo[k].move;
-							node->latestMoveInfo.score = node->siblingMoveInfo[k].score;
-							node->latestMoveInfo.depth = node->siblingMoveInfo[k].depth;
-							//update lateChild end
-	    
-						}
-	    
-					}
-					//exit the sibling
-					break;
-				}
-			}
-		}
-	  //exit the position
+	  if(k == node->siblings)
+	  {
+	    //update lateChild begin
+	    node->siblingMoveInfo[k].move = fileExpEntry.move;
+	    node->siblingMoveInfo[k].score = fileExpEntry.score;
+	    node->siblingMoveInfo[k].depth = fileExpEntry.depth;
+	    node->siblingMoveInfo[k].performance = fileExpEntry.performance;
+	    //update lateChild end
+	    node->siblings++;
+	    //update lateChild end
+	    if( ((node->siblingMoveInfo[k].performance<50) &&
+		(((node->latestMoveInfo.move == node->siblingMoveInfo[k].move) && (node->latestMoveInfo.depth <= node->siblingMoveInfo[k].depth))
+		||
+		((node->latestMoveInfo.move != node->siblingMoveInfo[k].move) &&
+		((node->latestMoveInfo.depth < node->siblingMoveInfo[k].depth)
+		 ||
+		 ((node->latestMoveInfo.depth == node->siblingMoveInfo[k].depth) &&
+		 ((node->latestMoveInfo.score <= node->siblingMoveInfo[k].score )||(node->latestMoveInfo.performance <= node->siblingMoveInfo[k].performance)))))
+		 ))||
+		 (node->siblingMoveInfo[k].performance>=50)
+	    )
+	    {// Return the HashTable's node updated
+	      //update lateChild begin
+	      node->latestMoveInfo.move = node->siblingMoveInfo[k].move;
+	      node->latestMoveInfo.score = node->siblingMoveInfo[k].score;
+	      node->latestMoveInfo.depth = node->siblingMoveInfo[k].depth;
+	      node->latestMoveInfo.performance = node->siblingMoveInfo[k].performance;
+	      //update lateChild end
+
+	    }
+	    //exit the sibling
 	    break;
+	  }
+	  else
+	  {
+	    if(node->siblingMoveInfo[k].move == fileExpEntry.move)
+	    {
+		if(
+		    ((fileExpEntry.performance<50) &&
+		    (((node->siblingMoveInfo[k].depth < fileExpEntry.depth))
+		    ||
+		    ((node->siblingMoveInfo[k].depth == fileExpEntry.depth) &&
+		     ((node->siblingMoveInfo[k].score <= fileExpEntry.score )||(node->siblingMoveInfo[k].performance <= fileExpEntry.performance)))))
+		    ||
+		    (fileExpEntry.performance>=50)
+		  )
+		  { // Return the HashTable's node updated
+		    //update lateChild begin
+		    node->siblingMoveInfo[k].move = fileExpEntry.move;
+		    node->siblingMoveInfo[k].score = fileExpEntry.score;
+		    node->siblingMoveInfo[k].depth = fileExpEntry.depth;
+		    //update lateChild end
+		    if(
+			(((node->siblingMoveInfo[k].performance<50))&&(((node->latestMoveInfo.move == node->siblingMoveInfo[k].move) && (node->latestMoveInfo.depth <= node->siblingMoveInfo[k].depth))
+			||
+			(
+			 (node->latestMoveInfo.move != node->siblingMoveInfo[k].move) &&
+			 (
+			  (node->latestMoveInfo.depth < node->siblingMoveInfo[k].depth)
+			  ||
+			  (
+			   (node->latestMoveInfo.depth == node->siblingMoveInfo[k].depth) &&
+			   ((node->latestMoveInfo.score <= node->siblingMoveInfo[k].score )||(node->latestMoveInfo.performance <= node->siblingMoveInfo[k].performance ))
+			  )
+			 )
+			)))
+			||
+			(node->siblingMoveInfo[k].performance>=50)
+		      )
+		      {// Return the HashTable's node updated
+			//update lateChild begin
+			node->latestMoveInfo.move = node->siblingMoveInfo[k].move;
+			node->latestMoveInfo.score = node->siblingMoveInfo[k].score;
+			node->latestMoveInfo.depth = node->siblingMoveInfo[k].depth;
+			node->latestMoveInfo.performance = node->siblingMoveInfo[k].performance;
+			//update lateChild end
+		      }
+		    }
+		    //exit the sibling
+		    break;
+	    }
+	  }
 	}
+	//exit the position
+	  break;
+      }
       it1++;
     }
 
@@ -287,8 +307,9 @@ void insertIntoOrUpdateLearningTable(LearningFileEntry& fileExpEntry,LearningHas
       infos.latestMoveInfo.move = fileExpEntry.move;
       infos.latestMoveInfo.score = fileExpEntry.score;
       infos.latestMoveInfo.depth = fileExpEntry.depth;
-	  infos.siblingMoveInfo[0] = infos.latestMoveInfo;
-	  infos.siblings = 1;
+      infos.latestMoveInfo.performance = fileExpEntry.performance;
+      infos.siblingMoveInfo[0] = infos.latestMoveInfo;
+      infos.siblings = 1;
       learningHT.insert(make_pair(fileExpEntry.hashKey, infos));
     }
 }
@@ -335,14 +356,15 @@ void writeLearningFile(HashTableType hashTableType)
         LearningFileEntry currentFileExpEntry;
         NodeInfo currentNodeInfo=it.second;
         for(int k = 0; k < currentNodeInfo.siblings; k++)
-		{
-			MoveInfo currentLatestMoveInfo=currentNodeInfo.siblingMoveInfo[k];
-			currentFileExpEntry.depth = currentLatestMoveInfo.depth;
-			currentFileExpEntry.hashKey = it.first;
-			currentFileExpEntry.move = currentLatestMoveInfo.move;
-			currentFileExpEntry.score = currentLatestMoveInfo.score;
-			outputFile.write((char*)&currentFileExpEntry, sizeof(currentFileExpEntry));
-		}
+	{
+		MoveInfo currentLatestMoveInfo=currentNodeInfo.siblingMoveInfo[k];
+		currentFileExpEntry.depth = currentLatestMoveInfo.depth;
+		currentFileExpEntry.hashKey = it.first;
+		currentFileExpEntry.move = currentLatestMoveInfo.move;
+		currentFileExpEntry.score = currentLatestMoveInfo.score;
+		currentFileExpEntry.performance = currentLatestMoveInfo.performance;
+		outputFile.write((char*)&currentFileExpEntry, sizeof(currentFileExpEntry));
+	}
       }
       outputFile.close();
     }
@@ -368,10 +390,11 @@ void loadSlaveLearningFilesIntoLearningTables()
 	while(slaveInputFile.good())
 	{
 	  LearningFileEntry slaveFileExpEntry;
-	  slaveFileExpEntry.depth = DEPTH_ZERO;
+	  slaveFileExpEntry.depth = 0;
 	  slaveFileExpEntry.hashKey = 0;
 	  slaveFileExpEntry.move = MOVE_NONE;
 	  slaveFileExpEntry.score = VALUE_NONE;
+	  slaveFileExpEntry.performance = 0;
 
 	  slaveInputFile.read((char*)&slaveFileExpEntry, sizeof(slaveFileExpEntry));
 	  if (slaveFileExpEntry.hashKey)

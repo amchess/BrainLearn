@@ -289,7 +289,8 @@ inline Square Position::castling_rook_square(CastlingRights cr) const {
 
 template<PieceType Pt>
 inline Bitboard Position::attacks_from(Square s) const {
-  assert(Pt != PAWN);
+  static_assert(Pt != PAWN, "Pawn attacks need color");
+
   return  Pt == BISHOP || Pt == ROOK ? attacks_bb<Pt>(s, byTypeBB[ALL_PIECES])
         : Pt == QUEEN  ? attacks_from<ROOK>(s) | attacks_from<BISHOP>(s)
         : PseudoAttacks[Pt][s];
@@ -432,7 +433,7 @@ inline void Position::move_piece(Piece pc, Square from, Square to) {
 
   // index[from] is not updated and becomes stale. This works as long as index[]
   // is accessed just by known occupied squares.
-  Bitboard fromTo = square_bb(from) | square_bb(to);
+  Bitboard fromTo = from | to;
   byTypeBB[ALL_PIECES] ^= fromTo;
   byTypeBB[type_of(pc)] ^= fromTo;
   byColorBB[color_of(pc)] ^= fromTo;
