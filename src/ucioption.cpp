@@ -91,7 +91,7 @@ void init(OptionsMap& o) {
   o["SyzygyProbeLimit"]      << Option(7, 0, 7);
   o["Live Book"]             << Option(false);
   o["Live Book URL"]         << Option("http://www.chessdb.cn/cdb.php", on_livebook_url);
-  o["Live Book Timeout"]     << Option(1500, 0, 10000, on_livebook_timeout);
+  o["Live Book Timeout"]     << Option(5000, 0, 10000, on_livebook_timeout);
   o["Live Book Diversity"]   << Option(false);
   o["Live Book Contribute"]  << Option(false);
   o["BookFile"]              << Option("<empty>", on_book_file);
