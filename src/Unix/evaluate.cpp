@@ -146,7 +146,7 @@ namespace {
   constexpr Score ThreatByKing       = S( 24, 89);
   constexpr Score ThreatByPawnPush   = S( 48, 39);
   constexpr Score ThreatBySafePawn   = S(173, 94);
-  constexpr Score TrappedRook        = S( 52, 10);
+  constexpr Score TrappedRook        = S( 52, 30);
   constexpr Score WeakQueen          = S( 49, 15);
 
 #undef S
@@ -525,7 +525,7 @@ namespace {
        & ~stronglyProtected
        &  attackedBy[Us][ALL_PIECES];
 
-    score += RestrictedPiece * popcount(b);
+    score += RestrictedPiece * (popcount(b) + popcount(b & pos.pieces()));
 
     // Protected or unattacked squares
     safe = ~attackedBy[Them][ALL_PIECES] | attackedBy[Us][ALL_PIECES];
