@@ -1164,11 +1164,13 @@ void Position::set_state(StateInfo* si) const {
 
 Position& Position::set(const string& code, Color c, StateInfo* si) {
 
-  assert(code.length() > 0 && code.length() < 8);
   assert(code[0] == 'K');
 
   string sides[] = { code.substr(code.find('K', 1)),      // Weak
-                     code.substr(0, code.find('K', 1)) }; // Strong
+                     code.substr(0, std::min(code.find('v'), code.find('K', 1))) }; // Strong
+
+  assert(sides[0].length() > 0 && sides[0].length() < 8);
+  assert(sides[1].length() > 0 && sides[1].length() < 8);
 
   std::transform(sides[c].begin(), sides[c].end(), sides[c].begin(), tolower);
 
@@ -1422,11 +1424,11 @@ bool Position::gives_check(Move m) const {
   Square to = to_sq(m);
 
   // Is there a direct check?
-  if (st->checkSquares[type_of(piece_on(from))] & to)
+  if (check_squares(type_of(piece_on(from))) & to)
       return true;
 
   // Is there a discovered check?
-  if (   (st->blockersForKing[~sideToMove] & from)
+  if (   (blockers_for_king(~sideToMove) & from)
       && !aligned(from, to, square<KING>(~sideToMove)))
       return true;
 

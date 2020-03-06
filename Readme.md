@@ -39,6 +39,15 @@ N.B.
 
 Because of disk access, to be effective, the learning must be made at no bullet time controls (less than 5 minutes/game).
 
+#### Read only learning
+
+_Boolean, Default: False_ 
+If activated, the learning file is only read.
+
+#### Large Pages (checkbox)
+
+_Boolean, Default: True_ If activated, the engine uses large pages (they must be enabled on Windows Operating System).
+
 ### Live Book section (thanks to Eman's author Khalid Omar for windows builds)
 
 #### Live Book (checkbox)
@@ -65,6 +74,9 @@ _Boolean, Default: False_ If activated, the engine varies its play, reducing con
 
 _Boolean, Default: False_ If activated, the engine sends a move, not in live chessdb, in its queue to be analysed. In this manner, we have a kind of learning cloud.
 
+#### Live Book Depth
+
+_Default 100, min 1, max 100_ Depth of live book moves.
 
 ### Opening variety
 
