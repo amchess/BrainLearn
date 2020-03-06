@@ -176,14 +176,17 @@ enum Value : int {
   VALUE_INFINITE  = 32001,
   VALUE_NONE      = 32002,
 
-  VALUE_MATE_IN_MAX_PLY  =  VALUE_MATE - 2 * MAX_PLY,
-  VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + 2 * MAX_PLY,
+  VALUE_TB_WIN_IN_MAX_PLY  =  VALUE_MATE - 2 * MAX_PLY,
+  VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_MATE + 2 * MAX_PLY,
+  VALUE_MATE_IN_MAX_PLY  =  VALUE_MATE - MAX_PLY,
+  VALUE_MATED_IN_MAX_PLY = -VALUE_MATE + MAX_PLY,
 
   PawnValueMg   = 128,   PawnValueEg   = 213,
   KnightValueMg = 781,   KnightValueEg = 854,
   BishopValueMg = 825,   BishopValueEg = 915,
   RookValueMg   = 1276,  RookValueEg   = 1380,
   QueenValueMg  = 2538,  QueenValueEg  = 2682,
+  Tempo = 28,
 
   MidgameLimit  = 15258, EndgameLimit  = 3915
 };
@@ -201,7 +204,12 @@ enum Piece {
   PIECE_NB = 16
 };
 
-extern Value PieceValue[PHASE_NB][PIECE_NB];
+constexpr Value PieceValue[PHASE_NB][PIECE_NB] = {
+  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg, VALUE_ZERO, VALUE_ZERO },
+  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg, VALUE_ZERO, VALUE_ZERO,
+    VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg, VALUE_ZERO, VALUE_ZERO }
+};
 
 typedef int Depth;
 
@@ -245,7 +253,7 @@ enum File : int {
   FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_NB
 };
 
-enum {scoreScale = 15};//to align with the gui: initial position cp=10
+enum {scoreScale = 25, valueThreshold=320};//to align with the gui: initial position cp=10
 
 enum Rank : int {
   RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NB
@@ -352,8 +360,11 @@ constexpr Color operator~(Color c) {
   return Color(c ^ BLACK); // Toggle color
 }
 
-constexpr Square operator~(Square s) {
-  return Square(s ^ SQ_A8); // Vertical flip SQ_A1 -> SQ_A8
+constexpr Square flip_rank(Square s) {
+  return Square(s ^ SQ_A8);
+}
+constexpr Square flip_file(Square s) {
+  return Square(s ^ SQ_H1);
 }
 
 constexpr Piece operator~(Piece pc) {

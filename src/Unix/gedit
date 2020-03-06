@@ -1,0 +1,9 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Version=1.0
+Type=Application
+Terminal=false
+Exec=/home/amchess/chess/arenalinux_64bit_3.10beta/Arena_x86_64_linux
+Name=Arena
+Comment=Arena
+Icon=home/amchess/chess/arenalinux_64bit_3.10beta/Arena.ico
