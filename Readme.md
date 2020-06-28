@@ -20,7 +20,7 @@ It is a collection of one or more positions stored with the following format (si
 - _board signature (hash key)_
 - _best move depth_
 - _best move score_
-- _best move performance_ , the new parameter calculated based on pattern recognition concept via a private offline learning application. Not having it, the default performance is 0 (not applied). This new learning algorithm is a lot stronger than the previous one as demostrate here: [Graphical result](https://github.com/amchess/BrainLearn/tree/master/tests/6-5.jpg)
+- _best move performance_ , a new parameter you can calculate with any learning application supporting this specification. An example is the private one, kernel of SaaS part of [ChessProbe](http://www.chessprobe.com) AI portal. The idea is to calculate it based on pattern recognition concept. In the portal, you can also exploit the reports of another NLG (virtual trainer) application and buy the products in the digishop based on all this. This open-source part has the performance default. So, it doesn't use it. Clearly, even if already strong, this private learning algorithm is a lot stronger as demostrate here: [Graphical result](https://github.com/amchess/BrainLearn/tree/master/tests/6-5.jpg)
 
 This file is loaded in an hashtable at the engine load and updated each time the engine receive quit or stop uci command.
 When BrainLearn starts a new game or when we have max 8 pieces on the chessboard, the learning is activated and the hash table updated each time the engine has a best score
@@ -39,14 +39,22 @@ N.B.
 
 Because of disk access, to be effective, the learning must be made at no bullet time controls (less than 5 minutes/game).
 
-#### Read only learning
+#### Contempt
+The default value is 0 and keep it for analysis purpose. For game playing, you can use the default stockfish value 24
+
+#### Dynamic contempt
+
+_Boolean, Default: True_ For match play, activate it and the engine uses the dynamic contempt. For analysis purpose; keep it at its default, to completely avoid, with contempt settled to 0, the well known [rollercoaster effect](http://talkchess.com/forum3/viewtopic.php?t=69129) and align so the engine's score to the gui's informator symbols
+
+### Read only learning
 
 _Boolean, Default: False_ 
 If activated, the learning file is only read.
 
-#### Large Pages (checkbox)
+### Self Q-learning
 
-_Boolean, Default: True_ If activated, the engine uses large pages (they must be enabled on Windows Operating System).
+_Boolean, Default: False_ 
+If activated, the learning algorithm is the [Q-learning](https://youtu.be/qhRNvCVVJaA?list=PLZbbT5o_s2xoWNVdDudn51XM8lOuZ_Njv), optimized for self play. Some GUIs don't write the experience file in some game's modes because the uci protocol is differently implemented
 
 ### Live Book section (thanks to Eman's author Khalid Omar for windows builds)
 
@@ -55,9 +63,10 @@ _Boolean, Default: True_ If activated, the engine uses large pages (they must be
 _Boolean, Default: False_ If activated, the engine uses the livebook as primary choice.
 
 #### Live Book URL
-The default is the online chessdb [https://www.chessdb.cn/queryc_en/](https://www.chessdb.cn/queryc_en/), a wonderful project by noobpwnftw (thanks to him!)
+The default is the online [chessdb](https://www.chessdb.cn/queryc_en/), a wonderful project by noobpwnftw (thanks to him!)
  
 [https://github.com/noobpwnftw/chessdb](https://github.com/noobpwnftw/chessdb)
+
 [http://talkchess.com/forum3/viewtopic.php?f=2&t=71764&hilit=chessdb](http://talkchess.com/forum3/viewtopic.php?f=2&t=71764&hilit=chessdb)
 
 The private application can also learn from this live db.
@@ -65,6 +74,10 @@ The private application can also learn from this live db.
 #### Live Book Timeout
 
 _Default 5000, min 0, max 10000_ Only for bullet games, use a lower value, for example, 1500.
+
+#### Live Book Retry
+
+_Default 3, min 1, max 100_ Max times the engine tries to contribute (if the corresponding option is activated: see below) to the live book. If 0, the engine doesn't use the livebook.
 
 #### Live Book Diversity
 
