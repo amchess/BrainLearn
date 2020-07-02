@@ -177,11 +177,6 @@ bool loadExperienceFile(const string& filename, HashTableType hashTableType, boo
         tempEntry.hashKey = (Key)0;
 
         //Read a new entry
-        tempEntry.depth = 0;
-        tempEntry.hashKey = 0;
-        tempEntry.move = MOVE_NONE;
-        tempEntry.score = VALUE_NONE;
-        tempEntry.performance = 100;
         inputLearningFile.read((char*)&tempEntry, sizeof(tempEntry));
         
         //If we got a null hashKey it means we are done!
@@ -205,33 +200,6 @@ bool loadExperienceFile(const string& filename, HashTableType hashTableType, boo
         remove(fn.c_str());
 
     return true;
-}
-
-void loadLearningFileIntoLearningTables(HashTableType hashTableType) {
-    std::string fileName = Utility::map_path("experience.bin");
-    ifstream inputLearningFile(fileName, ios::in | ios::binary);
-    int loading = 1;
-    while (loading)
-    {
-        LearningFileEntry currentInputLearningFileEntry;
-        currentInputLearningFileEntry.depth = 0;
-        currentInputLearningFileEntry.hashKey = 0;
-        currentInputLearningFileEntry.move = MOVE_NONE;
-        currentInputLearningFileEntry.score = VALUE_NONE;
-        currentInputLearningFileEntry.performance = 100;
-        inputLearningFile.read((char*)&currentInputLearningFileEntry, sizeof(currentInputLearningFileEntry));
-        if (currentInputLearningFileEntry.hashKey)
-        {
-            if ((hashTableType & HashTableType::global) == HashTableType::global)
-                insertIntoOrUpdateLearningTable(currentInputLearningFileEntry, globalLearningHT);
-
-            if ((hashTableType & HashTableType::experience) == HashTableType::experience)
-                insertIntoOrUpdateLearningTable(currentInputLearningFileEntry, experienceHT);
-        }
-        else
-            loading = 0;
-    }
-    inputLearningFile.close();
 }
 
 bool loadSlaveLearningFilesIntoLearningTables()
