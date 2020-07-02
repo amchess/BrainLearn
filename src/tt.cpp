@@ -196,9 +196,7 @@ void loadLearningFileIntoLearningTables(bool toDeleteBinFile) {
   inputLearningFile.close();
   if(toDeleteBinFile)
   {
-    char fileNameStr[fileName.size() + 1];
-    strcpy(fileNameStr, fileName.c_str());
-    remove(fileNameStr);
+    remove(fileName.c_str());
   }
 }
 
@@ -438,9 +436,7 @@ void loadSlaveLearningFilesIntoLearningTables()
 	  else
 	  {
 	    slaveInputFile.close();
-	    char slaveStr[slaveFileName.size() + 1];
-	    strcpy(slaveStr, slaveFileName.c_str());
-	    remove(slaveStr);
+	    remove(slaveFileName.c_str());
 	    i++;
 	  }
 	}
