@@ -216,7 +216,7 @@ bool loadSlaveLearningFilesIntoLearningTables()
     return i > 0;
 }
 
-void setLearningStructures ()
+void setLearningStructures()
 {
     loadExperienceFile("experience.bin", HashTableType::global | HashTableType::experience, false);
 
@@ -226,7 +226,7 @@ void setLearningStructures ()
     //previous saving operation failed (engine crashed or terminated)
     shouldRefresh |= loadExperienceFile("experience_new.bin", HashTableType::global | HashTableType::experience, true);
 
-  //Load slave experience files (if any)
+    //Load slave experience files (if any)
     shouldRefresh |= loadSlaveLearningFilesIntoLearningTables();
 
     if (shouldRefresh)
