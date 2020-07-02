@@ -135,16 +135,16 @@ namespace Utility
     namespace
     {
 #if defined(_WIN32) || defined (_WIN64)
-        constexpr char DirectorySeperator = '\\';
+        constexpr char DirectorySeparator = '\\';
 #else
-        constexpr char DirectorySeperator = '/';
+        constexpr char DirectorySeparator = '/';
 #endif
     }
 
     void init(const char* arg0)
     {
         string s = arg0;
-        size_t i = s.find_last_of(DirectorySeperator);
+        size_t i = s.find_last_of(DirectorySeparator);
         if(i != string::npos)
             myFolder = s.substr(0, i);
     }
@@ -159,8 +159,8 @@ namespace Utility
             return path;
 
         //Make sure we can map this path
-        if (newPath.find(DirectorySeperator) == string::npos)
-            newPath = myFolder + DirectorySeperator + newPath;
+        if (newPath.find(DirectorySeparator) == string::npos)
+            newPath = myFolder + DirectorySeparator + newPath;
 
         return newPath;
     }
