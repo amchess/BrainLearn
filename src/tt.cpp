@@ -170,8 +170,8 @@ void setLearningStructures ()
 }
 
 void loadLearningFileIntoLearningTables(bool toDeleteBinFile) {
-  std::string fileName="experience";
-  ifstream inputLearningFile("experience.bin", ios::in | ios::binary);
+  std::string fileName=Utility::map_path("experience.bin");
+  ifstream inputLearningFile(fileName, ios::in | ios::binary);
   int loading = 1;
   while (loading)
   {
@@ -382,7 +382,7 @@ void writeLearningFile(HashTableType hashTableType)
     }
   if(!currentLearningHT.empty())
     {
-      std::ofstream outputFile ("experience.bin", std::ofstream::trunc | std::ofstream::binary);
+      std::ofstream outputFile (Utility::map_path("experience.bin"), std::ofstream::trunc | std::ofstream::binary);
       for(auto& it:currentLearningHT)
       {
         LearningFileEntry currentFileExpEntry;
@@ -408,9 +408,7 @@ void loadSlaveLearningFilesIntoLearningTables()
     int i=0;
     while (merging)
     {
-      std::string index = std::to_string(i);
-      std::string slaveFileName ="";
-      slaveFileName="experience" + index + ".bin";
+      std::string slaveFileName = Utility::map_path("experience" + std::to_string(i) + ".bin");
       ifstream slaveInputFile (slaveFileName, ios::in | ios::binary);
       if(!slaveInputFile.good())
       {

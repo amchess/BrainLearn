@@ -128,6 +128,44 @@ public:
 
 } // namespace
 
+namespace Utility
+{
+    string myFolder;
+
+    namespace
+    {
+#if defined(_WIN32) || defined (_WIN64)
+        constexpr char DirectorySeperator = '\\';
+#else
+        constexpr char DirectorySeperator = '/';
+#endif
+    }
+
+    void init(const char* arg0)
+    {
+        string s = arg0;
+        size_t i = s.find_last_of(DirectorySeperator);
+        if(i != string::npos)
+            myFolder = s.substr(0, i);
+    }
+
+    //Map relative folder or filename to local directory of the engine executable
+    string map_path(const string& path)
+    {
+        string newPath = path;
+
+        //Make sure we have something to work on
+        if (!path.size() || !myFolder.size())
+            return path;
+
+        //Make sure we can map this path
+        if (newPath.find(DirectorySeperator) == string::npos)
+            newPath = myFolder + DirectorySeperator + newPath;
+
+        return newPath;
+    }
+};
+
 /// engine_info() returns the full name of the current Stockfish version. This
 /// will be either "Stockfish <Tag> DD-MM-YY" (where DD-MM-YY is the date when
 /// the program was compiled) or "Stockfish <Version>", depending on whether

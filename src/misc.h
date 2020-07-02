@@ -72,6 +72,9 @@ template<class T> constexpr const T& clamp(const T& v, const T& lo, const T& hi)
   return v < lo ? lo : v > hi ? hi : v;
 }
 
+void init(const char *arg0);
+std::string map_path(const std::string& path);
+
 }
 
 /// xorshift64star Pseudo-Random Number Generator
