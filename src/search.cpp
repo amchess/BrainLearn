@@ -430,7 +430,7 @@ void MainThread::search() {
   std::cout << sync_endl;
 
   //Save learning data if game is decided already
-  if (Utility::is_game_decided(rootPos, bestThread->rootMoves[0].score))
+  if (!pauseExperience && Utility::is_game_decided(rootPos, bestThread->rootMoves[0].score))
   {
       //Perform Q-learning if enabled
       if(Options["Self Q-learning"])
