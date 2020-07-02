@@ -223,7 +223,7 @@ size_t cURL_WriteFunc(void *contents, size_t size, size_t nmemb, std::string *s)
   {
     s->append((char*)contents, newLength);
   }
-  catch (std::bad_alloc &e)
+  catch (std::bad_alloc &)
   {
     //handle memory problem
     return 0;
