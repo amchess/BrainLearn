@@ -29,6 +29,8 @@
 
 #include "types.h"
 
+class Position; //Needed by is_game_decided()
+
 const std::string engine_info(bool to_uci = false);
 const std::string compiler_info();
 void prefetch(void* addr);
@@ -74,7 +76,7 @@ template<class T> constexpr const T& clamp(const T& v, const T& lo, const T& hi)
 
 void init(const char *arg0);
 std::string map_path(const std::string& path);
-
+bool is_game_decided(const Position &pos, Value lastScore);
 }
 
 /// xorshift64star Pseudo-Random Number Generator

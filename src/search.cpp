@@ -394,7 +394,7 @@ void MainThread::search() {
   
   
   //kelly begin	
-  if (bestThread->completedDepth > 4)
+  if (bestThread->completedDepth > 4 && !pauseExperience && !Options["Read only learning"])
   {
     LearningFileEntry currentLearningEntry;
     currentLearningEntry.depth = bestThread->completedDepth;
@@ -428,6 +428,22 @@ void MainThread::search() {
       std::cout << " ponder " << UCI::move(bestThread->rootMoves[0].pv[1], rootPos.is_chess960());
 
   std::cout << sync_endl;
+
+  //Save learning data if game is decided already
+  if (Utility::is_game_decided(rootPos, bestThread->rootMoves[0].score))
+  {
+      //Perform Q-learning if enabled
+      if(Options["Self Q-learning"])
+          putGameLineIntoLearningTable();
+
+      //Save to learning file
+      if(!Options["Read only learning"])
+          writeLearningFile(HashTableType::global);
+
+      //Stop learning until we receive *ucinewgame* command
+      pauseExperience = true;
+  }
+
   //livebook begin
   if (Options["Live Book"] && Options["Live Book Contribute"] && !g_inBook)
   {
@@ -2220,5 +2236,6 @@ void putGameLineIntoLearningTable()
 void setStartPoint()
 {
   useLearning = true;
+  pauseExperience = false;
 }
 //from Kelly end

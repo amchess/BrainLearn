@@ -242,11 +242,16 @@ void UCI::loop(int argc, char* argv[]) {
       if (    token == "quit"
                 ||  token == "stop")
       	{
-      	  if ((token == "quit") && (!(Options["Read only learning"])))
-	  //from Kelly begin
-	  {
-	     writeLearningFile(HashTableType::global);//from Kelly
-	  }
+          if (token == "quit" && !Options["Read only learning"] && !pauseExperience)
+          //from Kelly begin
+          {
+              //Perform Q-learning if enabled
+              if (Options["Self Q-learning"])
+                  putGameLineIntoLearningTable();
+
+              //Save to learning file
+              writeLearningFile(HashTableType::global);
+          }
           //from Kelly end
       	  Threads.stop = true;
       	}
@@ -267,15 +272,20 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "position")   position(pos, is, states);
       else if (token == "ucinewgame")
       {
-	//from Kelly begin
-	maximumPly = 0;
-	setStartPoint();
-    if(Options["Self Q-learning"])
-    {
-	  	putGameLineIntoLearningTable();
-	}
-	//from Kelly end
-	Search::clear();
+          //from Kelly begin
+          maximumPly = 0;
+          setStartPoint();
+
+          //Perform Q-learning if enabled
+          if (Options["Self Q-learning"])
+              putGameLineIntoLearningTable();
+
+          //Save to learning file
+          if (!Options["Read only learning"])
+              writeLearningFile(HashTableType::global);
+          //from Kelly end
+
+          Search::clear();
       }
       else if (token == "isready")    sync_cout << "readyok" << sync_endl;
 

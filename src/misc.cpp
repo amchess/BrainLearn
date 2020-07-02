@@ -164,6 +164,28 @@ namespace Utility
 
         return newPath;
     }
+
+    bool is_game_decided(const Position& pos, Value lastScore)
+    {
+        //Assume game is decided if game ply is above 200
+        if (pos.game_ply() > 200)
+            return true;
+
+        //Assume game is decided if |last score| is above 2.5 Pawn
+        if (lastScore != VALUE_NONE && std::abs(lastScore) > PawnValueMg * 5 / 2)
+            return true;
+
+        //Assume game is decided if |last score| is below 0.25 Pawn and game ply is above 120
+        if (pos.game_ply() > 120 && lastScore < PawnValueMg / 4)
+            return true;
+
+        //Assume game is decided if remaining pieces is less than 9
+        if (pos.count<ALL_PIECES>() < 9)
+            return true;
+
+        //Assume game is not decided!
+        return false;
+    }
 };
 
 /// engine_info() returns the full name of the current Stockfish version. This
