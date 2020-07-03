@@ -426,13 +426,13 @@ void writeLearningFile(HashTableType hashTableType)
 
   /*
     To avoid any problems when saving to experience file, we will actually do the following:
-    1) Save new experience to "experience0.bin"
+    1) Save new experience to "experience_new.bin"
     2) Remove "experience.bin"
-    3) Rename "experience0.bin" to "experience.bin"
+    3) Rename "experience_new.bin" to "experience.bin"
 
-    This approach is failproof so that the old file is only removed when the new file is sufccessfully saved!
+    This approach is failproof so that the old file is only removed when the new file is successfully saved!
     If, for whatever odd reason, the engine is able to execute step (1) and (2) and fails to execute step (3)
-    i.e., we end up with experience0.bin then it is not a problem since the file will be loaded anyway the next
+    i.e., we end up with experience_new.bin then it is not a problem since the file will be loaded anyway the next
     time the engine starts!
   */
   if(!currentLearningHT.empty())
