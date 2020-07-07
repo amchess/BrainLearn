@@ -29,6 +29,8 @@
 
 #include "types.h"
 
+class Position; //Needed by is_game_decided() Learner from Khalid
+
 const std::string engine_info(bool to_uci = false);
 const std::string compiler_info();
 void prefetch(void* addr);
@@ -72,6 +74,11 @@ template<class T> constexpr const T& clamp(const T& v, const T& lo, const T& hi)
   return v < lo ? lo : v > hi ? hi : v;
 }
 
+//begin khalid from learner
+void init(const char *arg0);
+std::string map_path(const std::string& path);
+bool is_game_decided(const Position &pos, Value lastScore);
+//end khalid from learner
 }
 
 /// xorshift64star Pseudo-Random Number Generator
