@@ -2218,20 +2218,24 @@ void putGameLineIntoLearningTable()
 {
   double learning_rate = 0.5;
   double gamma = 0.99;
-  size_t gameLineSize=gameLine.size();
-  if(gameLineSize != 0)
-  for (size_t index = gameLineSize; index --> 0; )
-    {
-	int currentScore = gameLine[index-1].score * 100/PawnValueEg;
-	int nextScore = gameLine[index].score * 100/PawnValueEg;
-	//int reward = gameLine[gameLine.size()-1].score * 100/PawnValueEg;
-	currentScore = currentScore*(1-learning_rate) +
-				learning_rate*(gamma*nextScore);
-	gameLine[index-1].score = currentScore * PawnValueEg/100;
-	insertIntoOrUpdateLearningTable(gameLine[index-1], globalLearningHT);
 
+  if (gameLine.size() > 1)
+  {
+    for (size_t index = gameLine.size() - 1; index > 0; index--)
+    {
+      int currentScore = gameLine[index - 1].score * 100 / PawnValueEg;
+      int nextScore = gameLine[index].score * 100 / PawnValueEg;
+
+      currentScore = currentScore * (1 - learning_rate) +
+        learning_rate * (gamma * nextScore);
+
+      gameLine[index - 1].score = currentScore * PawnValueEg / 100;
+
+      insertIntoOrUpdateLearningTable(gameLine[index - 1], globalLearningHT);
     }
-  gameLine.clear();
+
+    gameLine.clear();
+  }
 }
 
 void setStartPoint()
