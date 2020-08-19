@@ -1,0 +1,16 @@
+Houdini
+	// Step 8. Null move search with verification search
+	{}
+	//Step 11 loop through moves
+	{}
+	//Step 14 make the move
+	{}
+	// Step 15. Reduced depth search (LMR) 
+	condition
+
+ShashChess
+	// Step 13. Pruning at shallow depth (~200 Elo) tried
+	// Futility pruning for captures 
+	&& ((!(pos.this_thread()->shashinQuiescentCapablancaMiddleHighScore)) || (!(PvNode && abs(bestValue) < 2))) //last modification
+	//Step 16 lmr condition
+	{}
