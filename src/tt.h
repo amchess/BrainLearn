@@ -1,8 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-  Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -97,17 +95,7 @@ private:
 };
 
 //from Kelly begin
-//Very important to have HashTableType values use flag friendly values (i.e., powers of 2)
-//since we use bitwise oprations on them
-enum class HashTableType : uint8_t  { global = 0x01, experience = 0x02 };
-
 extern bool pauseExperience;
-
-//Operator overloading for HashTableType enum
-//Those operators are used elsewhere in the code and therefore need to be defined
-//More operators can be added if needed
-constexpr HashTableType operator |(HashTableType h1, HashTableType h2) { return HashTableType((uint8_t)h1 | (uint8_t)h2); }
-constexpr HashTableType operator &(HashTableType h1, HashTableType h2) { return HashTableType((uint8_t)h1 & (uint8_t)h2); }
 
 struct LearningFileEntry
 {
@@ -129,25 +117,23 @@ struct MoveInfo
 struct NodeInfo
 {
 	Key hashKey;
-	MoveInfo latestMoveInfo;	
-	MoveInfo siblingMoveInfo[MOVE_INFOS_SIZE];
-	int siblings = 0;
+	MoveInfo latestMoveInfo;
+	std::vector<MoveInfo> siblingMoveInfo;
 };
 
 
 // The Monte-Carlo tree is stored implicitly in one big hash table
 typedef std::unordered_multimap<Key, NodeInfo> LearningHashTable;
 void setLearningStructures ();
-void writeLearningFile(HashTableType hashTableType);
+void writeLearningFile();
 
-void insertIntoOrUpdateLearningTable(LearningFileEntry& tempExpEntry,LearningHashTable& learningHT);
+void insertIntoOrUpdateLearningTable(LearningFileEntry& tempExpEntry);
 
-typedef NodeInfo* Node;
-Node getNodeFromHT(Key key,HashTableType hashTableType);
+NodeInfo *getNodeFromHT(Key key);
 
-Value makeExpValue(LearningFileEntry fileExpEntry,HashTableType hashTableType);
+Value makeExpValue(LearningFileEntry fileExpEntry);
 
-extern LearningHashTable globalLearningHT,experienceHT;
+extern LearningHashTable globalLearningHT;
 //from Kelly end
 
 extern TranspositionTable TT;
