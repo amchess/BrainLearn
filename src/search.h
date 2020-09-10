@@ -48,6 +48,8 @@ struct Stack {
   int statScore;
   int moveCount;
   bool inCheck;
+  bool ttPv;
+  bool ttHit;
 };
 
 
@@ -106,6 +108,7 @@ void clear();
 //livebook begin
 void setLiveBookURL(const std::string &newURL);
 void setLiveBookTimeout(size_t newTimeoutMS);
+void set_livebook_retry(int retry);
 void set_livebook_depth(int book_depth);
 //livebook end
 

@@ -118,6 +118,7 @@ public:
   Bitboard checkers() const;
   Bitboard blockers_for_king(Color c) const;
   Bitboard check_squares(PieceType pt) const;
+  Bitboard pinners(Color c) const;
   bool is_discovery_check_on_king(Color c, Move m) const;
 
   // Attacks to/from a given square
@@ -175,7 +176,6 @@ public:
 
   // Used by NNUE
   StateInfo* state() const;
-  const EvalList* eval_list() const;
 
 private:
   // Initialization helpers (used while setting up a position)
@@ -189,9 +189,6 @@ private:
   void move_piece(Square from, Square to);
   template<bool Do>
   void do_castling(Color us, Square from, Square& to, Square& rfrom, Square& rto);
-
-  // ID of a piece on a given square
-  PieceId piece_id_on(Square sq) const;
 
   // Data members
   Piece board[SQUARE_NB];
@@ -209,9 +206,6 @@ private:
   Thread* thisThread;
   StateInfo* st;
   bool chess960;
-
-  // List of pieces used in NNUE evaluation function
-  EvalList evalList;
 };
 
 namespace PSQT {
@@ -312,6 +306,10 @@ inline Bitboard Position::checkers() const {
 
 inline Bitboard Position::blockers_for_king(Color c) const {
   return st->blockersForKing[c];
+}
+
+inline Bitboard Position::pinners(Color c) const {
+  return st->pinners[c];
 }
 
 inline Bitboard Position::check_squares(PieceType pt) const {
@@ -449,22 +447,6 @@ inline void Position::do_move(Move m, StateInfo& newSt) {
 inline StateInfo* Position::state() const {
 
   return st;
-}
-
-inline const EvalList* Position::eval_list() const {
-
-  return &evalList;
-}
-
-inline PieceId Position::piece_id_on(Square sq) const
-{
-
-  assert(piece_on(sq) != NO_PIECE);
-
-  PieceId pid = evalList.piece_id_list[sq];
-  assert(is_ok(pid));
-
-  return pid;
 }
 
 #endif // #ifndef POSITION_H_INCLUDED

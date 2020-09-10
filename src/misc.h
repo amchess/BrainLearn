@@ -75,19 +75,12 @@ std::ostream& operator<<(std::ostream&, SyncCout);
 #define sync_endl std::endl << IO_UNLOCK
 
 namespace Utility {
-
-/// Clamp a value between lo and hi. Available in c++17.
-template<class T> constexpr const T& clamp(const T& v, const T& lo, const T& hi) {
-  return v < lo ? lo : v > hi ? hi : v;
+  //begin khalid from learner
+  void init(const char *arg0);
+  std::string map_path(const std::string& path);
+  bool is_game_decided(const Position &pos, Value lastScore);
+  //end khalid from learner
 }
-
-//begin khalid from learner
-void init(const char *arg0);
-std::string map_path(const std::string& path);
-bool is_game_decided(const Position &pos, Value lastScore);
-//end khalid from learner
-}
-
 /// xorshift64star Pseudo-Random Number Generator
 /// This class is based on original code written and dedicated
 /// to the public domain by Sebastiano Vigna (2014).
@@ -142,10 +135,16 @@ inline uint64_t mul_hi64(uint64_t a, uint64_t b) {
 /// logical processor group. This usually means to be limited to use max 64
 /// cores. To overcome this, some special platform specific API should be
 /// called to set group affinity for each thread. Original code from Texel by
-/// Peter Ã–sterlund.
+/// Peter Österlund.
 
 namespace WinProcGroup {
   void bindThisThread(size_t idx);
 }
 
+namespace CommandLine {
+  void init(int argc, char* argv[]);
+
+  extern std::string binaryDirectory;  // path of the executable directory
+  extern std::string workingDirectory; // path of the working directory
+}
 #endif // #ifndef MISC_H_INCLUDED
