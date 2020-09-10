@@ -614,7 +614,7 @@ bool PolyBook::check_do_search(const Position & pos)
     if (akt_position == last_position) pos_changed = true;
     if (akt_anz_pieces > last_anz_pieces) pos_changed = true;
     if (akt_anz_pieces < last_anz_pieces - 2) pos_changed = true;
-    if (pos.key() == 0xB4D30CD15A43432D) pos_changed = true;    
+    if(pos.game_ply()==0) pos_changed = true;
 
     // reset do_search and book depth counter if
     // postion changed more than one move can do or in initial position
