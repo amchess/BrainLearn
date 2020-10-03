@@ -102,7 +102,7 @@ namespace {
     Position p;
     p.set(pos.fen(), Options["UCI_Chess960"], &states->back(), Threads.main());
 
-    Eval::verify_NNUE();
+    Eval::NNUE::verify();
 
     sync_cout << "\n" << Eval::trace(p) << sync_endl;
   }
@@ -187,7 +187,7 @@ namespace {
 
         if (token == "go" || token == "eval")
         {
-            cerr << "\nPosition: " << cnt++ << '/' << num << endl;
+            cerr << "\nPosition: " << cnt++ << '/' << num << " (" << pos.fen() << ")" << endl;
             if (token == "go")
             {
                go(pos, is, states);
