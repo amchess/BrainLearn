@@ -27,6 +27,7 @@
 #include "polybook.h"//from BrainFish
 #include "evaluate.h"
 #include "misc.h"
+#include "montecarlo.h" //Montecarlo
 #include "movegen.h"
 #include "movepick.h"
 #include "position.h"
@@ -163,7 +164,7 @@ namespace {
   int openingVariety;//from Sugar
 
   template <NodeType NT>
-  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
+  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, bool mcts);//mcts
 
   template <NodeType NT>
   Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth = 0);
@@ -244,7 +245,7 @@ void Search::set_livebook_depth(int book_depth) {
 void Search::init() {
 
   for (int i = 1; i < MAX_MOVES; ++i)
-      Reductions[i] = int((22.0 + std::log(Threads.size())) * std::log(i));
+	Reductions[i] = int((22.0 + 2 * std::log(Threads.size())) * std::log(i + 0.25 * std::log(i)));
 
   //livebook begin
   curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -266,6 +267,7 @@ void Search::clear() {
   set_livebook_depth((int)Options["Live Book Depth"]);
   Time.availableNodes = 0;
   TT.clear();
+  MCTS.clear();//mcts
   Threads.clear();
   Tablebases::init(Options["SyzygyPath"]); // Free mapped files
 }
@@ -297,7 +299,7 @@ void MainThread::search() {
   }
   //Kelly end
   openingVariety = Options["Opening variety"];//from Sugar
-  Eval::verify_NNUE();
+  Eval::NNUE::verify(); 
   if (rootMoves.empty())
   {
       rootMoves.emplace_back(MOVE_NONE);
@@ -498,7 +500,6 @@ void Thread::search() {
           for (int i = 0; i < 4; ++i)
               mainThread->iterValue[i] = mainThread->bestPreviousScore;
   }
-
   std::copy(&lowPlyHistory[2][0], &lowPlyHistory.back().back() + 1, &lowPlyHistory[0][0]);
   std::fill(&lowPlyHistory[MAX_LPH - 2][0], &lowPlyHistory.back().back() + 1, 0);
 
@@ -540,7 +541,23 @@ void Thread::search() {
                           : -make_score(ct, ct / 2));
 
   int searchAgainCounter = 0;
+  //mcts begin
+  bool maybeDraw = rootPos.rule50_count() >= 90 || rootPos.has_game_cycle(2);
+  bool mcts = Options["MCTS"];
+  if (mcts && !maybeDraw && idx == 1)
+  {
+      MonteCarlo *monteCarlo = new MonteCarlo(rootPos);
+      if (!monteCarlo)
+      {
+          std::cerr << IO_LOCK << "Could not allocate " << sizeof(MonteCarlo) << " bytes for MonteCarlo search" << std::endl << IO_UNLOCK;
+          ::exit(EXIT_FAILURE);
+      }
 
+      monteCarlo->search();
+      delete monteCarlo;
+  }
+  else
+  //from mcts end
   // Iterative deepening loop until requested to stop or the target depth is reached
   while (   ++rootDepth < MAX_PLY
          && !Threads.stop
@@ -552,8 +569,11 @@ void Thread::search() {
 
       // Save the last iteration's scores before first PV line is searched and
       // all the move scores except the (new) PV are set to -VALUE_INFINITE.
-      for (RootMove& rm : rootMoves)
+      //from mcts begin
+	  for (RootMove& rm : rootMoves){
           rm.previousScore = rm.score;
+      }
+      //from mcts end
 
       size_t pvFirst = 0;
       pvLast = 0;
@@ -598,7 +618,7 @@ void Thread::search() {
           while (true)
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
-              bestValue = ::search<PV>(rootPos, ss, alpha, beta, adjustedDepth, false);
+              bestValue = ::search<PV>(rootPos, ss, alpha, beta, adjustedDepth, false, false);//mcts
 
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
@@ -639,10 +659,7 @@ void Thread::search() {
                   ++failedHighCnt;
               }
               else
-              {
-                  ++rootMoves[pvIdx].bestMoveCount;
                   break;
-              }
 
               delta += delta / 4 + 5;
 
@@ -697,7 +714,7 @@ void Thread::search() {
               totBestMoveChanges += th->bestMoveChanges;
               th->bestMoveChanges = 0;
           }
-          double bestMoveInstability = 1 + totBestMoveChanges / Threads.size();
+          double bestMoveInstability = 1 + 2 * totBestMoveChanges / Threads.size();
 
           double totalTime = rootMoves.size() == 1 ? 0 :
                              Time.optimum() * fallingEval * reduction * bestMoveInstability;
@@ -741,7 +758,7 @@ namespace {
   // search<>() is the main search function for both PV and non-PV nodes
 
   template <NodeType NT>
-  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode) {
+  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, bool mcts) { //mcts
 
     constexpr bool PvNode = NT == PV;
     const bool rootNode = PvNode && ss->ply == 0;
@@ -809,7 +826,7 @@ namespace {
     if (!rootNode)
     {
         // Step 2. Check for aborted search and immediate draw
-        if (   Threads.stop.load(std::memory_order_relaxed)
+	if (   Threads.stop.load(std::memory_order_relaxed)
             || pos.is_draw(ss->ply)
             || ss->ply >= MAX_PLY)
             return (ss->ply >= MAX_PLY && !ss->inCheck) ? evaluate(pos)
@@ -840,9 +857,7 @@ namespace {
     // starts with statScore = 0. Later grandchildren start with the last calculated
     // statScore of the previous grandchild. This influences the reduction rules in
     // LMR which are based on the statScore of parent position.
-    if (rootNode)
-        (ss+4)->statScore = 0;
-    else
+    if (!rootNode)
         (ss+2)->statScore = 0;
 
     // Step 4. Transposition table lookup. We don't want the score of a partial
@@ -1117,14 +1132,14 @@ namespace {
         assert(eval - beta >= 0);
 
         // Null move dynamic reduction based on depth and value
-        Depth R = (817 + 71 * depth) / 213 + std::min(int(eval - beta) / 192, 3);
+        Depth R = (982 + 85 * depth) / 256 + std::min(int(eval - beta) / 192, 3);
 
         ss->currentMove = MOVE_NULL;
         ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
 
         pos.do_null_move(st);
 
-        Value nullValue = -search<NonPV>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode);
+        Value nullValue = -search<NonPV>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode, mcts);//mcts
 
         pos.undo_null_move();
 
@@ -1144,7 +1159,7 @@ namespace {
             thisThread->nmpMinPly = ss->ply + 3 * (depth-R) / 4;
             thisThread->nmpColor = us;
 
-            Value v = search<NonPV>(pos, ss, beta-1, beta, depth-R, false);
+            Value v = search<NonPV>(pos, ss, beta-1, beta, depth-R, false, mcts);//mcts
 
             thisThread->nmpMinPly = 0;
 
@@ -1211,7 +1226,7 @@ namespace {
 
                 // If the qsearch held, perform the regular search
                 if (value >= probCutBeta)
-                    value = -search<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1, depth - 4, !cutNode);
+                    value = -search<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1, depth - 4, !cutNode, mcts);//mcts
 
                 pos.undo_move(move);
 
@@ -1342,7 +1357,6 @@ moves_loop: // When in check, search starts from here
               if (   !givesCheck
                   && lmrDepth < 6
                   && !(PvNode && abs(bestValue) < 2)
-                  && PieceValue[MG][type_of(movedPiece)] >= PieceValue[MG][type_of(pos.piece_on(to_sq(move)))]
                   && !ss->inCheck
                   && ss->staticEval + 169 + 244 * lmrDepth
                      + PieceValue[MG][type_of(pos.piece_on(to_sq(move)))] <= alpha)
@@ -1373,7 +1387,7 @@ moves_loop: // When in check, search starts from here
           Value singularBeta = ttValue - ((formerPv + 4) * depth) / 2;
           Depth singularDepth = (depth - 1 + 3 * formerPv) / 2;
           ss->excludedMove = move;
-          value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
+          value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode, mcts);//mcts
           ss->excludedMove = MOVE_NONE;
 
           if (value < singularBeta)
@@ -1394,7 +1408,7 @@ moves_loop: // When in check, search starts from here
           else if (ttValue >= beta)
           {
               ss->excludedMove = move;
-              value = search<NonPV>(pos, ss, beta - 1, beta, (depth + 3) / 2, cutNode);
+              value = search<NonPV>(pos, ss, beta - 1, beta, (depth + 3) / 2, cutNode, mcts);//mcts
               ss->excludedMove = MOVE_NONE;
 
               if (value >= beta)
@@ -1410,11 +1424,6 @@ moves_loop: // When in check, search starts from here
       // Last captures extension
       else if (   PieceValue[EG][pos.captured_piece()] > PawnValueEg
                && pos.non_pawn_material() <= 2 * RookValueMg)
-          extension = 1;
-
-      // Castling extension
-      if (   type_of(move) == CASTLING
-          && popcount(pos.pieces(us) & ~pos.pieces(PAWN) & (to_sq(move) & KingSide ? KingSide : QueenSide)) <= 2)
           extension = 1;
 
       // Late irreversible move extension
@@ -1443,7 +1452,7 @@ moves_loop: // When in check, search starts from here
       // re-searched at full depth.
       if (    depth >= 3		  
 		  &&  moveCount > sibs //Kelly
-          &&  moveCount > 1 + 2 * rootNode + 2 * (PvNode && abs(bestValue) < 2)
+          &&  moveCount > 1 + 2 * rootNode
           && (  !captureOrPromotion
               || moveCountPruning
               || ss->staticEval + PieceValue[EG][pos.captured_piece()] <= alpha
@@ -1510,19 +1519,19 @@ moves_loop: // When in check, search starts from here
           }
           else
           {
-            // Increase reduction for captures/promotions if late move and at low depth
-            if (depth < 8 && moveCount > 2)
-                r++;
+              // Increase reduction for captures/promotions if late move and at low depth
+              if (depth < 8 && moveCount > 2)
+                  r++;
 
-            // Unless giving check, this capture is likely bad
-            if (   !givesCheck
-                && ss->staticEval + PieceValue[EG][pos.captured_piece()] + 213 * depth <= alpha)
-                r++;
+              // Unless giving check, this capture is likely bad
+              if (   !givesCheck
+                  && ss->staticEval + PieceValue[EG][pos.captured_piece()] + 213 * depth <= alpha)
+                  r++;
           }
 
           Depth d = std::clamp(newDepth - r, 1, newDepth);
 
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true, mcts);//mcts
 
           doFullDepthSearch = value > alpha && d != newDepth;
 
@@ -1538,7 +1547,7 @@ moves_loop: // When in check, search starts from here
       // Step 17. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode, mcts);//mcts
 
           if (didLMR && !captureOrPromotion)
           {
@@ -1560,7 +1569,7 @@ moves_loop: // When in check, search starts from here
           (ss+1)->pv = pv;
           (ss+1)->pv[0] = MOVE_NONE;
 
-          value = -search<PV>(pos, ss+1, -beta, -alpha, newDepth, false);
+          value = -search<PV>(pos, ss+1, -beta, -alpha, newDepth, false, mcts);//mcts
       }
 
       // Step 18. Undo move
@@ -1862,6 +1871,7 @@ moves_loop: // When in check, search starts from here
                                                                 [pos.moved_piece(move)]
                                                                 [to_sq(move)];
 
+      // CounterMove based pruning
       if (  !captureOrPromotion
           && moveCount
           && (*contHist[0])[pos.moved_piece(move)][to_sq(move)] < CounterMovePruneThreshold
@@ -2091,6 +2101,94 @@ moves_loop: // When in check, search starts from here
 
 } // namespace
 
+  //mcts begin
+  // minimax_value() is a wrapper around the search() and qsearch() functions
+  // used to compute the minimax evaluation of a position at the given depth,
+  // from the point of view of the side to move. It does not compute PV nor
+  // emit anything on the output stream. Note: you can call this function
+  // with depth == DEPTH_ZERO to compute the quiescence value of the position.
+
+  Value minimax_value(Position& pos, Search::Stack* ss, Depth depth) {
+
+//    Threads.stopOnPonderhit = Threads.stop = false;
+    Value alpha = -VALUE_INFINITE;
+    Value beta = VALUE_INFINITE;
+    Move pv[MAX_PLY+1];
+    ss->pv = pv;
+
+ /*   if (pos.should_debug())
+    {
+        debug << "Entering minimax_value() for the following position:" << std::endl;
+        debug << pos << std::endl;
+        hit_any_key();
+    }*/
+
+    Value value = search<PV>(pos, ss, alpha, beta, depth, false, true);
+
+/*    if (pos.should_debug())
+    {
+        debug << pos << std::endl;
+        debug << "... exiting minimax_value() with value = " << value << std::endl;
+        hit_any_key();
+    }
+*/
+    return value;
+  }
+  
+  // minimax_value() is a wrapper around the search() and qsearch() functions
+  // used to compute the minimax evaluation of a position at the given depth,
+  // from the point of view of the side to move. It does not compute PV nor
+  // emit anything on the output stream. Note: you can call this function
+  // with depth == DEPTH_ZERO to compute the quiescence value of the position.
+
+  Value minimax_value(Position& pos, Search::Stack* ss, Depth depth, Value alpha, Value beta) {
+
+//    Threads.stopOnPonderhit = Threads.stop = false;
+ //   alpha = -VALUE_INFINITE;
+ //   beta = VALUE_INFINITE;
+    Move pv[MAX_PLY+1];
+    ss->pv = pv;
+
+ /*   if (pos.should_debug())
+    {
+        debug << "Entering minimax_value() for the following position:" << std::endl;
+        debug << pos << std::endl;
+        hit_any_key();
+    }*/
+    Value value=VALUE_ZERO;
+    Value delta = Value(18);
+
+    while (!Threads.stop.load(std::memory_order_relaxed))
+    {
+        value = search<PV>(pos, ss, alpha, beta, depth, false, false);
+        if (value <= alpha)
+        {
+            beta = (alpha + beta) / 2;
+            alpha = std::max(value - delta, -VALUE_INFINITE);
+
+        }
+        else if (value >= beta)
+        {
+            beta = std::min(value + delta, VALUE_INFINITE);
+            // ++failedHighCnt;
+        }
+        else
+        {
+            //++rootMoves[pvIdx].bestMoveCount;
+            break;
+        }
+    }
+
+/*    if (pos.should_debug())
+    {
+        debug << pos << std::endl;
+        debug << "... exiting minimax_value() with value = " << value << std::endl;
+        hit_any_key();
+    }
+*/
+    return value;
+  }
+//mcts end
 /// MainThread::check_time() is used to print debug info and, more importantly,
 /// to detect when we are out of available time and thus stop the search.
 
@@ -2122,7 +2220,6 @@ void MainThread::check_time() {
       || (Limits.nodes && Threads.nodes_searched() >= (uint64_t)Limits.nodes))
       Threads.stop = true;
 }
-
 
 /// UCI::pv() formats PV information according to the UCI protocol. UCI requires
 /// that all (if any) unsearched PV lines are sent using a previous search score.

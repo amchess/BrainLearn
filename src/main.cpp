@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
   polybook2.init(Options["BookFile2"]);
   //cerebellum end
   Search::clear(); // After threads are up
-  Eval::init_NNUE();
+  Eval::NNUE::init();
 
   UCI::loop(argc, argv);
 

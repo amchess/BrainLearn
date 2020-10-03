@@ -56,6 +56,12 @@ If activated, the learning file is only read.
 _Boolean, Default: False_ 
 If activated, the learning algorithm is the [Q-learning](https://youtu.be/qhRNvCVVJaA?list=PLZbbT5o_s2xoWNVdDudn51XM8lOuZ_Njv), optimized for self play. Some GUIs don't write the experience file in some game's modes because the uci protocol is differently implemented
 
+## MCTS
+
+_Boolean, Default: False_ 
+If activated, during the search, the engine uses, on only one thread (the firts one not main), the Montecarlo algorithm. So, the engine's behaviour is yet more similar to NN networks. On a single thread mode, so, there is no MCTS.
+A great thanks to Stephane Nicolet for his [original idea](https://github.com/snicolet/Stockfish/tree/montecarlo/src)
+
 ### Live Book section (thanks to Eman's author Khalid Omar for windows builds)
 
 #### Live Book (checkbox)
@@ -124,17 +130,17 @@ Note: We recommend you use games from high quality play.
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/official-stockfish/Stockfish?branch=master&svg=true)](https://ci.appveyor.com/project/mcostalba/stockfish/branch/master)
 
 [Stockfish](https://stockfishchess.org) is a free, powerful UCI chess engine
-derived from Glaurung 2.1. It features two evaluation functions, the classical
-evaluation based on handcrafted terms, and the NNUE evaluation based on
-efficiently updateable neural networks. The classical evaluation runs efficiently
-on most 64bit CPU architectures, while the NNUE evaluation benefits strongly from the
-vector intrinsics available on modern CPUs (avx2 or similar).
+derived from Glaurung 2.1. Stockfish is not a complete chess program and requires a
+UCI-compatible graphical user interface (GUI) (e.g. XBoard with PolyGlot, Scid,
+Cute Chess, eboard, Arena, Sigma Chess, Shredder, Chess Partner or Fritz) in order
+to be used comfortably. Read the documentation for your GUI of choice for information
+about how to use Stockfish with it.
 
-Stockfish is not a complete chess program and requires a
-UCI-compatible GUI (e.g. XBoard with PolyGlot, Scid, Cute Chess, eboard, Arena,
-Sigma Chess, Shredder, Chess Partner or Fritz) in order to be used comfortably.
-Read the documentation for your GUI of choice for information about how to use
-Stockfish with it.
+The Stockfish engine features two evaluation functions for chess, the classical
+evaluation based on handcrafted terms, and the NNUE evaluation based on efficiently
+updateable neural networks. The classical evaluation runs efficiently on almost all
+CPU architectures, while the NNUE evaluation benefits from the vector
+intrinsics available on most CPUs (sse2, avx2, neon, or similar).
 
 
 ## Files
@@ -148,10 +154,14 @@ This distribution of Stockfish consists of the following files:
   * src, a subdirectory containing the full source code, including a Makefile
     that can be used to compile Stockfish on Unix-like systems.
 
-To use the NNUE evaluation an additional data file with neural network parameters
-needs to be downloaded. The filename for the default set can be found as the default
-value of the `EvalFile` UCI option, with the format
-`nn-[SHA256 first 12 digits].nnue` (e.g. nn-c157e0a5755b.nnue). This file can be downloaded from
+  * a file with the .nnue extension, storing the neural network for the NNUE 
+    evaluation. Binary distributions will have this file embedded.
+
+Note: to use the NNUE evaluation, the additional data file with neural network parameters
+needs to be available. Normally, this file is already embedded in the binary or it can be downloaded.
+The filename for the default (recommended) net can be found as the default
+value of the `EvalFile` UCI option, with the format `nn-[SHA256 first 12 digits].nnue`
+(for instance, `nn-c157e0a5755b.nnue`). This file can be downloaded from
 ```
 https://tests.stockfishchess.org/api/nn/[filename]
 ```
@@ -178,19 +188,14 @@ Currently, Stockfish has the following UCI options:
 
   * #### Use NNUE
     Toggle between the NNUE and classical evaluation functions. If set to "true",
-    the network parameters must be available to load from file (see also EvalFile).
+    the network parameters must be available to load from file (see also EvalFile),
+    if they are not embedded in the binary.
 
   * #### EvalFile
     The name of the file of the NNUE evaluation parameters. Depending on the GUI the
-    filename should include the full path to the folder/directory that contains the file.
-
-  * #### Contempt
-    A positive value for contempt favors middle game positions and avoids draws,
-    effective for the classical evaluation only.
-
-  * #### Analysis Contempt
-    By default, contempt is set to prefer the side to move. Set this option to "White"
-    or "Black" to analyse with contempt for that side, or "Off" to disable contempt.
+    filename might have to include the full path to the folder/directory that contains the file.
+    Other locations, such as the directory that contains the binary and the working directory,
+    are also searched.
 
   * #### UCI_AnalyseMode
     An option handled by your GUI.
@@ -240,6 +245,14 @@ Currently, Stockfish has the following UCI options:
     Limit Syzygy tablebase probing to positions with at most this many pieces left
     (including kings and pawns).
 
+  * #### Contempt
+    A positive value for contempt favors middle game positions and avoids draws,
+    effective for the classical evaluation only.
+
+  * #### Analysis Contempt
+    By default, contempt is set to prefer the side to move. Set this option to "White"
+    or "Black" to analyse with contempt for that side, or "Off" to disable contempt.
+
   * #### Move Overhead
     Assume a time delay of x ms due to network and GUI overheads. This is useful to
     avoid losses on time in those cases.
@@ -258,14 +271,14 @@ Currently, Stockfish has the following UCI options:
   * #### Debug Log File
     Write all communication to and from the engine into a text file.
 
-## Classical and NNUE evaluation
+## A note on classical and NNUE evaluation
 
 Both approaches assign a value to a position that is used in alpha-beta (PVS) search
 to find the best move. The classical evaluation computes this value as a function
 of various chess concepts, handcrafted by experts, tested and tuned using fishtest.
 The NNUE evaluation computes this value with a neural network based on basic
 inputs (e.g. piece positions only). The network is optimized and trained
-on the evalutions of millions of positions at moderate search depth.
+on the evaluations of millions of positions at moderate search depth.
 
 The NNUE evaluation was first introduced in shogi, and ported to Stockfish afterward.
 It can be evaluated efficiently on CPUs, and exploits the fact that only parts
@@ -311,8 +324,8 @@ the 50-move rule.
 
 Stockfish supports large pages on Linux and Windows. Large pages make
 the hash access more efficient, improving the engine speed, especially
-on large hash sizes. Typical increases are 5..10% in terms of nps, but
-speed increases up to 30% have been measured. The support is
+on large hash sizes. Typical increases are 5..10% in terms of nodes per
+second, but speed increases up to 30% have been measured. The support is
 automatic. Stockfish attempts to use large pages when available and
 will fall back to regular memory allocation when this is not the case.
 
@@ -326,11 +339,11 @@ are already enabled and no configuration is needed.
 
 The use of large pages requires "Lock Pages in Memory" privilege. See
 [Enable the Lock Pages in Memory Option (Windows)](https://docs.microsoft.com/en-us/sql/database-engine/configure-windows/enable-the-lock-pages-in-memory-option-windows)
-on how to enable this privilege. Logout/login may be needed
-afterwards. Due to memory fragmentation, it may not always be
-possible to allocate large pages even when enabled. A reboot
-might alleviate this problem. To determine whether large pages
-are in use, see the engine log.
+on how to enable this privilege, then run [RAMMap](https://docs.microsoft.com/en-us/sysinternals/downloads/rammap)
+to double-check that large pages are used. We suggest that you reboot
+your computer after you have enabled large pages, because long Windows
+sessions suffer from memory fragmentation which may prevent Stockfish
+from getting large pages: a fresh session is better in this regard.
 
 ## Compiling Stockfish yourself from the sources
 
@@ -345,6 +358,7 @@ targets with corresponding descriptions.
 ```
     cd src
     make help
+    make net
     make build ARCH=x86-64-modern
 ```
 
@@ -357,8 +371,7 @@ compiler you used to create your executable. These informations can
 be found by typing the following commands in a console:
 
 ```
-    ./stockfish
-    compiler
+    ./stockfish compiler
 ```
 
 ## Understanding the code base and participating in the project
