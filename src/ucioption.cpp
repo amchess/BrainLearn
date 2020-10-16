@@ -95,7 +95,6 @@ void init(OptionsMap& o) {
   o["SyzygyProbeLimit"]      << Option(7, 0, 7);
   o["Read only learning"]    << Option(false);
   o["Self Q-learning"]       << Option(false);
-  o["MCTS"]                  << Option(false);
   o["Use NNUE"]              << Option(true, on_use_NNUE);
   o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);
   o["Live Book"]             << Option(false);
