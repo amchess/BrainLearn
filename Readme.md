@@ -56,12 +56,6 @@ If activated, the learning file is only read.
 _Boolean, Default: False_ 
 If activated, the learning algorithm is the [Q-learning](https://youtu.be/qhRNvCVVJaA?list=PLZbbT5o_s2xoWNVdDudn51XM8lOuZ_Njv), optimized for self play. Some GUIs don't write the experience file in some game's modes because the uci protocol is differently implemented
 
-## MCTS
-
-_Boolean, Default: False_ 
-If activated, during the search, the engine uses, on only one thread (the firts one not main), the Montecarlo algorithm. So, the engine's behaviour is yet more similar to NN networks. On a single thread mode, so, there is no MCTS.
-A great thanks to Stephane Nicolet for his [original idea](https://github.com/snicolet/Stockfish/tree/montecarlo/src)
-
 ### Live Book section (thanks to Eman's author Khalid Omar for windows builds)
 
 #### Live Book (checkbox)
