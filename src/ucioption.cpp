@@ -104,7 +104,11 @@ void init(OptionsMap& o) {
   o["Live Book Diversity"]   << Option(false);
   o["Live Book Contribute"]  << Option(false);
   o["Live Book Depth"]       << Option(100, 1, 100, on_livebook_depth);
+#if defined(POLY_EMBEDDING_ON)
+  o["BookFile"]              << Option("<internal>", on_book_file);
+#else
   o["BookFile"]              << Option("<empty>", on_book_file);
+#endif
   o["BookFile2"]             << Option("<empty>", on_book_file2);
   o["BestBookMove"]          << Option(true, on_best_book_move);
   o["BookDepth"]             << Option(255, 1, 255, on_book_depth);
