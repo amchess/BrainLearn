@@ -16,13 +16,22 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "polybook.h"
+#include <sys/timeb.h>
+#include <iostream>
 #include "uci.h"
 #include "movegen.h"
 #include "thread.h"
-#include <iostream>
 #include "misc.h"
-#include <sys/timeb.h>
+#include "polybook.h"
+
+#if defined(POLY_EMBEDDING_ON)
+    // This macro invocation will declare the following variables
+    //     const unsigned char        gEmbeddedPolyData[];  // a pointer to the embedded data
+    //     const unsigned int         gEmbeddedPolySize;    // the size of the embedded file
+    // Note that this does not work in Microsof Visual Studio.
+
+    INCBIN(EmbeddedPoly, "book.bin");
+#endif
 
 PolyBook polybook;  // global PolyBook
 PolyBook polybook2;  // global second PolyBook
@@ -325,15 +334,16 @@ PolyBook::PolyBook()
 
 PolyBook::~PolyBook()
 {
-    if (polyhash != NULL)
-        delete[]polyhash;
+    release();
 }
 
 
 void PolyBook::init(const std::string& bookfile)
 {
     if (bookfile.length() == 0) return;
-    const char *fnam = bookfile.c_str();
+    const char* fnam = bookfile.c_str();
+
+    release();
 
     if (strcmp(fnam, "<empty>") == 0)
     {
@@ -341,31 +351,41 @@ void PolyBook::init(const std::string& bookfile)
         return;
     }
 
-    FILE *fpt = fopen(fnam, "rb");
-    if (fpt == NULL)
+#if defined(POLY_EMBEDDING_ON)
+    if (strcmp(fnam, "<internal>") == 0)
     {
-        sync_cout << "info string Could not open " << bookfile << sync_endl;
-        enabled = false;
-        return;
+        keycount = gEmbeddedPolySize / 16;
+
+        polyhash = new PolyHash[keycount];
+        memcpy(polyhash, gEmbeddedPolyData, gEmbeddedPolySize);
+    }
+    else
+    {
+#else
+    if constexpr (true)
+    {
+#endif
+
+        FILE* fpt = fopen(fnam, "rb");
+        if (fpt == NULL)
+        {
+            sync_cout << "info string Could not open " << bookfile << sync_endl;
+            enabled = false;
+            return;
+        }
+
+        fseek(fpt, 0L, SEEK_END);
+        int filesize = ftell(fpt);
+        fseek(fpt, 0L, SEEK_SET);
+
+        keycount = filesize / 16;
+        polyhash = new PolyHash[keycount];
+
+        fread(polyhash, 1, filesize, fpt);
+        fclose(fpt);
     }
 
-    if (polyhash != NULL)
-    {
-        free(polyhash);
-        polyhash = NULL;
-    }
-
-    fseek(fpt, 0L, SEEK_END);
-    int filesize = ftell(fpt);
-    fseek(fpt, 0L, SEEK_SET);
-
-    keycount = filesize / 16;
-    polyhash = new PolyHash[keycount];
-
-    fread(polyhash, 1, filesize, fpt);
-    fclose(fpt);
-
-    for (int i = 0; i<keycount; i++)
+    for (int i = 0; i < keycount; i++)
         byteswap_polyhash(&polyhash[i]);
 
     sr = time(NULL);
@@ -377,6 +397,14 @@ void PolyBook::init(const std::string& bookfile)
     enabled = true;
 }
 
+void PolyBook::release()
+{
+    delete []polyhash;
+    polyhash = NULL;
+
+    keycount = 0;
+    enabled = false;
+}
 
 void PolyBook::set_best_book_move(bool best_book_move)
 {

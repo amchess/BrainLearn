@@ -23,6 +23,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "position.h"
 #include "string.h"
 
+#if defined(POLY_EMBEDDING_ON)
+    #if defined(_MSC_VER)
+        #undef POLY_EMBEDDING_ON
+    #else
+        #include "incbin/incbin.h"
+    #endif
+#endif
+
 typedef struct {
     uint64_t key;
     uint16_t move;
@@ -38,6 +46,8 @@ public:
     ~PolyBook();
 
     void init(const std::string& bookfile);
+    void release();
+
     void set_best_book_move(bool best_book_move);
     void set_book_depth(int book_depth);
 
