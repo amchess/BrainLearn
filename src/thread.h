@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 #include "search.h"
 #include "thread_win32_osx.h"
 
+namespace Stockfish {
 
 /// Thread class keeps together all the thread-related stuff. We use
 /// per-thread pawn and material hash tables so that once we get a
@@ -54,6 +55,7 @@ public:
   void idle_loop();
   void start_searching();
   void wait_for_search_finished();
+  size_t id() const { return idx; }
 
   Pawns::Table pawnsTable;
   Material::Table materialTable;
@@ -73,6 +75,7 @@ public:
   CapturePieceToHistory captureHistory;
   ContinuationHistory continuationHistory[2][2];
   Score contempt;
+  int failedHighCnt;
 };
 
 
@@ -126,5 +129,23 @@ private:
 };
 
 extern ThreadPool Threads;
+
+/// Spinlock class is a yielding spin-lock (compatible with hyperthreading machines)
+
+class Spinlock {
+  std::atomic_int lock;
+
+public:
+  Spinlock() { lock = 1; }                  // Init here to workaround a bug with MSVC 2013
+  Spinlock(const Spinlock&) { lock = 1; };
+  void acquire() {
+      while (lock.fetch_sub(1, std::memory_order_acquire) != 1)
+          while(lock.load(std::memory_order_relaxed) <= 0)
+              std::this_thread::yield();  // Be nice to hyperthreading
+  }
+  void release() { lock.store(1, std::memory_order_release); }
+};
+
+} // namespace Stockfish
 
 #endif // #ifndef THREAD_H_INCLUDED

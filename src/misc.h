@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,17 +27,19 @@
 #include <ostream>
 #include <string>
 #include <vector>
+#include <cstdint>
 #ifndef _MSC_VER
 #include <mm_malloc.h>
 #endif
 
 #include "types.h"
-#include "thread_win32_osx.h"
+
+namespace Stockfish {
 
 class Position; //Needed by is_game_decided() Learner from Khalid
 
-const std::string engine_info(bool to_uci = false);
-const std::string compiler_info();
+std::string engine_info(bool to_uci = false);
+std::string compiler_info();
 void prefetch(void* addr);
 void start_logger(const std::string& fname);
 void* std_aligned_alloc(size_t alignment, size_t size);
@@ -73,6 +75,61 @@ std::ostream& operator<<(std::ostream&, SyncCout);
 
 #define sync_cout std::cout << IO_LOCK
 #define sync_endl std::endl << IO_UNLOCK
+
+// `ptr` must point to an array of size at least
+// `sizeof(T) * N + alignment` bytes, where `N` is the
+// number of elements in the array.
+template <uintptr_t Alignment, typename T>
+T* align_ptr_up(T* ptr)
+{
+  static_assert(alignof(T) < Alignment);
+
+  const uintptr_t ptrint = reinterpret_cast<uintptr_t>(reinterpret_cast<char*>(ptr));
+  return reinterpret_cast<T*>(reinterpret_cast<char*>((ptrint + (Alignment - 1)) / Alignment * Alignment));
+}
+
+template <typename T>
+class ValueListInserter {
+public:
+  ValueListInserter(T* v, std::size_t& s) :
+    values(v),
+    size(&s)
+  {
+  }
+
+  void push_back(const T& value) { values[(*size)++] = value; }
+private:
+  T* values;
+  std::size_t* size;
+};
+
+template <typename T, std::size_t MaxSize>
+class ValueList {
+
+public:
+  std::size_t size() const { return size_; }
+  void resize(std::size_t newSize) { size_ = newSize; }
+  void push_back(const T& value) { values_[size_++] = value; }
+  T& operator[](std::size_t index) { return values_[index]; }
+  T* begin() { return values_; }
+  T* end() { return values_ + size_; }
+  const T& operator[](std::size_t index) const { return values_[index]; }
+  const T* begin() const { return values_; }
+  const T* end() const { return values_ + size_; }
+  operator ValueListInserter<T>() { return ValueListInserter(values_, size_); }
+
+  void swap(ValueList& other) {
+    const std::size_t maxSize = std::max(size_, other.size_);
+    for (std::size_t i = 0; i < maxSize; ++i) {
+      std::swap(values_[i], other.values_[i]);
+    }
+    std::swap(size_, other.size_);
+  }
+
+private:
+  T values_[MaxSize];
+  std::size_t size_ = 0;
+};
 
 namespace Utility {
   //begin khalid from learner
@@ -135,7 +192,7 @@ inline uint64_t mul_hi64(uint64_t a, uint64_t b) {
 /// logical processor group. This usually means to be limited to use max 64
 /// cores. To overcome this, some special platform specific API should be
 /// called to set group affinity for each thread. Original code from Texel by
-/// Peter Österlund.
+/// Peter Ã–sterlund.
 
 namespace WinProcGroup {
   void bindThisThread(size_t idx);
@@ -147,4 +204,7 @@ namespace CommandLine {
   extern std::string binaryDirectory;  // path of the executable directory
   extern std::string workingDirectory; // path of the working directory
 }
+
+} // namespace Stockfish
+
 #endif // #ifndef MISC_H_INCLUDED

@@ -24,6 +24,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "misc.h"
 #include <sys/timeb.h>
 
+namespace Stockfish {
+
 PolyBook polybook;  // global PolyBook
 PolyBook polybook2;  // global second PolyBook
 
@@ -456,7 +458,7 @@ Key PolyBook::polyglot_key(const Position & pos)
 
     while (b)
     {
-        Square s = pop_lsb(&b);
+        Square s = pop_lsb(b);
         Piece p = pos.piece_on(s);
 
         // PolyGlot pieces are: BP = 0, WP = 1, BN = 2, ... BK = 10, WK = 11
@@ -714,4 +716,4 @@ uint16_t PolyBook::swap_uint16(uint16_t d)
 
     return a;
 }
-
+} // namespace Stockfish

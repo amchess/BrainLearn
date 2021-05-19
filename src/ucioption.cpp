@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,6 +31,8 @@
 #include "polybook.h" //cerebellum
 
 using std::string;
+
+namespace Stockfish {
 
 UCI::OptionsMap Options; // Global object
 
@@ -95,6 +97,9 @@ void init(OptionsMap& o) {
   o["SyzygyProbeLimit"]      << Option(7, 0, 7);
   o["Read only learning"]    << Option(false);
   o["Self Q-learning"]       << Option(false);
+  o["MCTS"]                  << Option("Off var Off var Single var Multi", "Off");
+  o["Multi Strategy"]        << Option(20, 0, 100);
+  o["Multi MinVisits"]       << Option(5, 0, 1000);
   o["Use NNUE"]              << Option(true, on_use_NNUE);
   o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);
   o["Live Book"]             << Option(false);
@@ -109,6 +114,7 @@ void init(OptionsMap& o) {
   o["BestBookMove"]          << Option(true, on_best_book_move);
   o["BookDepth"]             << Option(255, 1, 255, on_book_depth);
   o["Opening variety"]       << Option (0, 0, 40);
+  o["Concurrent Experience"] << Option (false);
 }
 
 
@@ -218,3 +224,5 @@ Option& Option::operator=(const string& v) {
 }
 
 } // namespace UCI
+
+} // namespace Stockfish
