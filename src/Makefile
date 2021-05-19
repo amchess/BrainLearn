@@ -1,7 +1,5 @@
 # Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-# Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-# Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-# Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+# Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 #
 # Stockfish is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,18 +31,38 @@ PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds
+PGO_TRAINING_DATA_FILE = pgo_training_data.bin
 PGOBENCH = ./$(EXE) bench
+PGOGENSFEN = ./$(EXE) gensfen depth 3 loop 1000 sfen_format bin output_file_name $(PGO_TRAINING_DATA_FILE)
 
 ### Source and object files
 SRCS = benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp evaluate.cpp main.cpp \
 	material.cpp misc.cpp movegen.cpp movepick.cpp pawns.cpp polybook.cpp position.cpp psqt.cpp \
 	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp syzygy/tbprobe.cpp \
-	nnue/evaluate_nnue.cpp nnue/features/half_kp.cpp
+	extra/stockfish_blas.cpp \
+	nnue/evaluate_nnue.cpp \
+	nnue/evaluate_nnue_learner.cpp \
+	nnue/features/half_kp.cpp \
+	nnue/features/half_ka.cpp \
+	nnue/features/half_relative_kp.cpp \
+	nnue/features/half_relative_ka.cpp \
+	nnue/features/k.cpp \
+	nnue/features/p.cpp \
+	nnue/features/a.cpp \
+	nnue/features/castling_right.cpp \
+	nnue/features/enpassant.cpp \
+	nnue/nnue_test_command.cpp \
+	learn/sfen_packer.cpp \
+	learn/learn.cpp \
+	learn/gensfen.cpp \
+	learn/gensfen_nonpv.cpp \
+	learn/opening_book.cpp \
+	learn/convert.cpp \
+	learn/transform.cpp
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
 
-VPATH = syzygy:nnue:nnue/features
-
+VPATH = syzygy:nnue:nnue/features:eval:extra:learn
 ### Establish the operating system name
 KERNEL = $(shell uname -s)
 ifeq ($(KERNEL),Linux)
@@ -101,6 +119,7 @@ else
    SUPPORTED_ARCH=false
 endif
 
+blas = no
 optimize = yes
 debug = no
 sanitize = no
@@ -296,9 +315,9 @@ endif
 ### ==========================================================================
 
 ### 3.1 Selecting compiler (default = gcc)
-CXXFLAGS += -Wall -Wcast-qual -fexceptions -std=c++17 $(EXTRACXXFLAGS)
-DEPENDFLAGS += -std=c++17
-LDFLAGS += -lcurl -lws2_32 $(EXTRALDFLAGS)
+CXXFLAGS += -g -Wall -Wcast-qual -fexceptions -std=c++17 -fopenmp -I. $(EXTRACXXFLAGS)
+LDFLAGS += -fopenmp -lcurl -lws2_32 $(EXTRALDFLAGS)
+DEPENDFLAGS += -std=c++17 -I.
 
 ifeq ($(COMP),)
 	COMP=gcc
@@ -307,7 +326,7 @@ endif
 ifeq ($(COMP),gcc)
 	comp=gcc
 	CXX=g++
-	CXXFLAGS += -pedantic -Wextra -Wshadow
+	CXXFLAGS += -pedantic -Wextra -Wshadow -lstdc++fs
 
 	ifeq ($(arch),$(filter $(arch),armv7 armv8))
 		ifeq ($(OS),Android)
@@ -326,7 +345,6 @@ ifeq ($(COMP),gcc)
 	ifneq ($(KERNEL),Darwin)
 	   LDFLAGS += -Wl,--no-as-needed
 	endif
-
 endif
 
 ifeq ($(COMP),mingw)
@@ -352,7 +370,6 @@ ifeq ($(COMP),mingw)
 
 	CXXFLAGS += -Wextra -Wshadow
 	LDFLAGS += -static
-
 endif
 
 ifeq ($(COMP),icc)
@@ -384,8 +401,8 @@ ifeq ($(COMP),clang)
 endif
 
 ifeq ($(KERNEL),Darwin)
-	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.14
-	LDFLAGS += -arch $(arch) -mmacosx-version-min=10.14
+	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.15
+	LDFLAGS += -arch $(arch) -mmacosx-version-min=10.15
 	XCRUN = xcrun
 endif
 
@@ -446,20 +463,42 @@ ifneq ($(comp),mingw)
 		# Haiku has pthreads in its libroot, so only link it in on other platforms
 		ifneq ($(KERNEL),Haiku)
 			ifneq ($(COMP),ndk)
-				LDFLAGS += -lpthread
-			endif
+			LDFLAGS += -lpthread
 		endif
 	endif
 endif
+endif
 
-### 3.2.1 Debugging
+### 3.2.1. BLAS libraries
+ifeq ($(blas), yes)
+	LDFLAGS += -lopenblas
+
+	ifeq ($(KERNEL),Linux)
+		LDFLAGS +=
+	else ifeq ($(KERNEL), Darwin)
+		CXXFLAGS += -I/usr/local/opt/openblas/include
+		LDFLAGS += -L/usr/local/opt/openblas/lib -lcblas
+	else
+		CXXFLAGS += -I/msys64/mingw64/x86_64-w64-mingw32/include/OpenBLAS
+
+		ifeq ($(debug),yes)
+			LDFLAGS += -Wl,-static
+		else
+			LDFLAGS += -Wl,-s -static
+		endif
+	endif
+
+	CXXFLAGS += -DUSE_BLAS
+endif
+
+### 3.2.2 Debugging
 ifeq ($(debug),no)
 	CXXFLAGS += -DNDEBUG
 else
 	CXXFLAGS += -g
 endif
 
-### 3.2.2 Debugging with undefined behavior sanitizers
+### 3.2.3 Debugging with undefined behavior sanitizers
 ifneq ($(sanitize),no)
         CXXFLAGS += -g3 -fsanitize=$(sanitize)
         LDFLAGS += -fsanitize=$(sanitize)
@@ -507,6 +546,7 @@ ifeq ($(popcnt),yes)
 		CXXFLAGS += -msse3 -mpopcnt -DUSE_POPCNT
 	endif
 endif
+
 
 ifeq ($(avx2),yes)
 	CXXFLAGS += -DUSE_AVX2
@@ -572,7 +612,7 @@ ifeq ($(neon),yes)
 		CXXFLAGS += -mfpu=neon
 	endif
 	endif
-	endif
+endif
 endif
 
 ### 3.7 pext
@@ -634,10 +674,10 @@ ifeq ($(OS), Android)
 	LDFLAGS += -fPIE -pie
 endif
 
-
 ### ==========================================================================
 ### Section 4. Public Targets
 ### ==========================================================================
+
 
 help:
 	@echo ""
@@ -712,7 +752,7 @@ endif
         config-sanity icc-profile-use icc-profile-make gcc-profile-use gcc-profile-make \
         clang-profile-use clang-profile-make
 
-build: config-sanity net
+build: net config-sanity
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
 
 profile-build: net config-sanity objclean profileclean
@@ -722,6 +762,7 @@ profile-build: net config-sanity objclean profileclean
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
 	$(PGOBENCH) > /dev/null
+	$(PGOGENSFEN) > /dev/null
 	@echo ""
 	@echo "Step 3/4. Building optimized executable ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) objclean
@@ -768,13 +809,14 @@ net:
 
 # clean binaries and objects
 objclean:
-	@rm -f $(EXE) *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o
+	@rm -f $(EXE) *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o ./learn/*.o ./extra/*.o ./eval/*.o
 
 # clean auxiliary profiling files
 profileclean:
 	@rm -rf profdir
-	@rm -f bench.txt *.gcda *.gcno ./syzygy/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s
+	@rm -f bench.txt *.gcda *.gcno ./syzygy/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s ./learn/*.gcda ./extra/*.gcda ./eval/*.gcda
 	@rm -f stockfish.profdata *.profraw
+	@rm -f $(PGO_TRAINING_DATA_FILE)
 
 default:
 	help
@@ -785,7 +827,7 @@ default:
 
 all: $(EXE) .depend
 
-config-sanity:
+config-sanity: net
 	@echo ""
 	@echo "Config:"
 	@echo "debug: '$(debug)'"
@@ -880,7 +922,6 @@ icc-profile-use:
 	all
 
 .depend:
-	-@$(CXX) $(DEPENDFLAGS) -MM $(SRCS) > $@ 2> /dev/null
+	-@$(CXX) $(DEPENDFLAGS) -MM $(SRCS) > $@
 
 -include .depend
-

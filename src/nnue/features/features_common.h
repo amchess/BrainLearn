@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 #include "../../evaluate.h"
 #include "../nnue_common.h"
 
-namespace Eval::NNUE::Features {
+namespace Stockfish::Eval::NNUE::Features {
 
   class IndexList;
 
@@ -33,13 +33,18 @@ namespace Eval::NNUE::Features {
 
   // Trigger to perform full calculations instead of difference only
   enum class TriggerEvent {
-    kFriendKingMoved // calculate full evaluation when own king moves
+    kNone, // Calculate the difference whenever possible
+    kFriendKingMoved, // calculate full evaluation when own king moves
+    kEnemyKingMoved, // calculate full evaluation when opponent king moves
+    kAnyKingMoved, // calculate full evaluation when any king moves
+    kAnyPieceMoved, // always calculate full evaluation
   };
 
   enum class Side {
-    kFriend // side to move
+    kFriend, // side to move
+    kEnemy, // opponent
   };
 
-}  // namespace Eval::NNUE::Features
+}  // namespace Stockfish::Eval::NNUE::Features
 
 #endif // #ifndef NNUE_FEATURES_COMMON_H_INCLUDED

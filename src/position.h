@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,14 +27,20 @@
 
 #include "bitboard.h"
 #include "evaluate.h"
+#include "psqt.h"
 #include "misc.h"
 #include "types.h"
 
 #include "nnue/nnue_accumulator.h"
+#include "learn/packed_sfen.h"
+#include "learn/sfen_packer.h"
+
+namespace Stockfish {
 //kelly patch begin
 extern void setStartPoint();
 extern void putGameLineIntoLearningTable();
 //kelly patch end
+
 
 /// StateInfo struct stores information needed to restore a Position object to
 /// its previous state when we retract a move. Whenever a move is made on the
@@ -91,7 +97,7 @@ public:
   // FEN string input/output
   Position& set(const std::string& fenStr, bool isChess960, StateInfo* si, Thread* th);
   Position& set(const std::string& code, Color c, StateInfo* si);
-  const std::string fen() const;
+  std::string fen() const;
 
   // Position representation
   Bitboard pieces(PieceType pt) const;
@@ -119,7 +125,6 @@ public:
   Bitboard blockers_for_king(Color c) const;
   Bitboard check_squares(PieceType pt) const;
   Bitboard pinners(Color c) const;
-  bool is_discovery_check_on_king(Color c, Move m) const;
 
   // Attacks to/from a given square
   Bitboard attackers_to(Square s) const;
@@ -132,7 +137,6 @@ public:
   bool capture(Move m) const;
   bool capture_or_promotion(Move m) const;
   bool gives_check(Move m) const;
-  bool advanced_pawn_push(Move m) const;
   Piece moved_piece(Move m) const;
   Piece captured_piece() const;
 
@@ -177,6 +181,28 @@ public:
   // Used by NNUE
   StateInfo* state() const;
 
+  // --sfenization helper
+
+  friend int Learner::set_from_packed_sfen(Position& pos, const Learner::PackedSfen& sfen, StateInfo* si, Thread* th);
+
+  // Get the packed sfen. Returns to the buffer specified in the argument.
+  // Do not include gamePly in pack.
+  void sfen_pack(Learner::PackedSfen& sfen);
+
+  // It is slow to go through sfen, so I made a function to set packed sfen directly.
+  // Equivalent to pos.set(sfen_unpack(data),si,th);.
+  // If there is a problem with the passed phase and there is an error, non-zero is returned.
+  // PackedSfen does not include gamePly so it cannot be restored. If you want to set it, specify it with an argument.
+  int set_from_packed_sfen(const Learner::PackedSfen& sfen, StateInfo* si, Thread* th);
+
+  void clear() { std::memset(this, 0, sizeof(Position)); }
+
+  // Give the board, hand piece, and turn, and return the sfen.
+  //static std::string sfen_from_rawdata(Piece board[81], Hand hands[2], Color turn, int gamePly);
+
+  // Returns the position of the ball on the c side.
+  Square king_square(Color c) const { return pieceList[make_piece(c, KING)][0]; }
+
 private:
   // Initialization helpers (used while setting up a position)
   void set_castling_right(Color c, Square rfrom);
@@ -207,10 +233,6 @@ private:
   StateInfo* st;
   bool chess960;
 };
-
-namespace PSQT {
-  extern Score psq[PIECE_NB][SQUARE_NB];
-}
 
 extern std::ostream& operator<<(std::ostream& os, const Position& pos);
 
@@ -316,17 +338,8 @@ inline Bitboard Position::check_squares(PieceType pt) const {
   return st->checkSquares[pt];
 }
 
-inline bool Position::is_discovery_check_on_king(Color c, Move m) const {
-  return st->blockersForKing[c] & from_sq(m);
-}
-
 inline bool Position::pawn_passed(Color c, Square s) const {
   return !(pieces(~c, PAWN) & passed_pawn_span(c, s));
-}
-
-inline bool Position::advanced_pawn_push(Move m) const {
-  return   type_of(moved_piece(m)) == PAWN
-        && relative_rank(sideToMove, to_sq(m)) > RANK_5;
 }
 
 inline int Position::pawns_on_same_color_squares(Color c, Square s) const {
@@ -334,7 +347,8 @@ inline int Position::pawns_on_same_color_squares(Color c, Square s) const {
 }
 
 inline Key Position::key() const {
-  return st->key;
+  return st->rule50 < 14 ? st->key
+                         : st->key ^ make_key((st->rule50 - 14) / 8);
 }
 
 inline Key Position::pawn_key() const {
@@ -383,7 +397,7 @@ inline bool Position::capture_or_promotion(Move m) const {
 inline bool Position::capture(Move m) const {
   assert(is_ok(m));
   // Castling is encoded as "king captures rook"
-  return (!empty(to_sq(m)) && type_of(m) != CASTLING) || type_of(m) == ENPASSANT;
+  return (!empty(to_sq(m)) && type_of(m) != CASTLING) || type_of(m) == EN_PASSANT;
 }
 
 inline Piece Position::captured_piece() const {
@@ -407,10 +421,6 @@ inline void Position::put_piece(Piece pc, Square s) {
 
 inline void Position::remove_piece(Square s) {
 
-  // WARNING: This is not a reversible operation. If we remove a piece in
-  // do_move() and then replace it in undo_move() we will put it at the end of
-  // the list and not in its original place, it means index[] and pieceList[]
-  // are not invariant to a do_move() + undo_move() sequence.
   Piece pc = board[s];
   byTypeBB[ALL_PIECES] ^= s;
   byTypeBB[type_of(pc)] ^= s;
@@ -426,8 +436,6 @@ inline void Position::remove_piece(Square s) {
 
 inline void Position::move_piece(Square from, Square to) {
 
-  // index[from] is not updated and becomes stale. This works as long as index[]
-  // is accessed just by known occupied squares.
   Piece pc = board[from];
   Bitboard fromTo = from | to;
   byTypeBB[ALL_PIECES] ^= fromTo;
@@ -448,5 +456,6 @@ inline StateInfo* Position::state() const {
 
   return st;
 }
+} // namespace Stockfish
 
 #endif // #ifndef POSITION_H_INCLUDED

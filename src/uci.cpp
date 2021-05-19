@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,26 +22,46 @@
 #include <sstream>
 #include <string>
 
+#include "extra/stockfish_blas.h"
+#include "nnue/evaluate_nnue.h"
 #include "evaluate.h"
 #include "movegen.h"
+#include "nnue/nnue_test_command.h"
 #include "position.h"
 #include "search.h"
+#include "syzygy/tbprobe.h"
 #include "thread.h"
 #include "timeman.h"
 #include "tt.h"
 #include "uci.h"
-#include "syzygy/tbprobe.h"
+
+#include "learn/gensfen.h"
+#include "learn/gensfen_nonpv.h"
+#include "learn/learn.h"
+#include "learn/convert.h"
+#include "learn/transform.h"
 
 using namespace std;
 
+namespace Stockfish {
 extern vector<string> setup_bench(const Position&, istream&);
 
 int maximumPly = 0; //from Kelly
+// FEN string of the initial position, normal chess
+const char* StartFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+void test_cmd(Position& pos, istringstream& is)
+{
+    // Initialize as it may be searched.
+    Eval::NNUE::init();
+
+    std::string param;
+    is >> param;
+
+    if (param == "nnue") Eval::NNUE::test_command(pos, is);
+}
+
 namespace {
-
-  // FEN string of the initial position, normal chess
-  const char* StartFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
 
   // position() is called when engine receives the "position" UCI command.
   // The function sets up the position described in the given FEN string ("fen")
@@ -52,6 +72,7 @@ namespace {
 
     Move m;
     string token, fen;
+
     is >> token;
 
     if (token == "startpos")
@@ -102,7 +123,7 @@ namespace {
     Position p;
     p.set(pos.fen(), Options["UCI_Chess960"], &states->back(), Threads.main());
 
-    Eval::NNUE::verify();
+    Eval::NNUE::verify_eval_file_loaded();
 
     sync_cout << "\n" << Eval::trace(p) << sync_endl;
   }
@@ -111,7 +132,7 @@ namespace {
   // setoption() is called when engine receives the "setoption" UCI command. The
   // function updates the UCI option ("name") to the given value ("value").
 
-  void setoption(istringstream& is) {
+  void setoption_from_stream(istringstream& is) {
 
     string token, name, value;
 
@@ -125,10 +146,7 @@ namespace {
     while (is >> token)
         value += (value.empty() ? "" : " ") + token;
 
-    if (Options.count(name))
-        Options[name] = value;
-    else
-        sync_cout << "No such option: " << name << sync_endl;
+    UCI::setoption(name, value);
   }
 
 
@@ -197,19 +215,18 @@ namespace {
             else
                trace_eval(pos);
         }
-        else if (token == "setoption")  setoption(is);
+        else if (token == "setoption")  setoption_from_stream(is);
         else if (token == "position")   position(pos, is, states);
-        else if (token == "ucinewgame") {
-	  //from Kelly begin
-	  maximumPly = 0;
-	  setStartPoint();
-	  if(Options["Self Q-learning"])
-      {
-	  	putGameLineIntoLearningTable();
-	  }
-	  //from Kelly end
-	  Search::clear(); elapsed = now(); // Search::clear() may take some while
-	}
+        else if (token == "ucinewgame") { 
+			  //from Kelly begin
+			  maximumPly = 0;
+			  setStartPoint();
+			  if(Options["Self Q-learning"])
+		      {
+			  	putGameLineIntoLearningTable();
+			  }
+			  //from Kelly end
+			 Search::clear(); elapsed = now(); } // Search::clear() may take some while
     }
 
     elapsed = now() - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
@@ -222,30 +239,79 @@ namespace {
          << "\nNodes/second    : " << 1000 * nodes / elapsed << endl;
   }
 
-  // The win rate model returns the probability (per mille) of winning given an eval
-  // and a game-ply. The model fits rather accurately the LTC fishtest statistics.
-  int win_rate_model(Value v, int ply) {
-
-     // The model captures only up to 240 plies, so limit input (and rescale)
-     double m = std::min(240, ply) / 64.0;
-
-     // Coefficients of a 3rd order polynomial fit based on fishtest data
-     // for two parameters needed to transform eval to the argument of a
-     // logistic function.
-     double as[] = {-8.24404295, 64.23892342, -95.73056462, 153.86478679};
-     double bs[] = {-3.37154371, 28.44489198, -56.67657741,  72.05858751};
-     double a = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
-     double b = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
-
-     // Transform eval to centipawns with limited range
-     double x = std::clamp(double(100 * v) / PawnValueEg, -1000.0, 1000.0);
-
-     // Return win rate in per mille (rounded to nearest)
-     return int(0.5 + 1000 / (1 + std::exp((a - x) / b)));
-  }
-
 } // namespace
 
+void UCI::setoption(const std::string& name, const std::string& value)
+{
+    if (Options.count(name))
+        Options[name] = value;
+    else
+        sync_cout << "No such option: " << name << sync_endl;
+}
+
+// The win rate model returns the probability (per mille) of winning given an eval
+// and a game-ply. The model fits rather accurately the LTC fishtest statistics.
+int UCI::win_rate_model(Value v, int ply) {
+   // Return win rate in per mille (rounded to nearest)
+   return int(0.5 + win_rate_model_double(v, ply));
+}
+
+// The win rate model returns the probability (per mille) of winning given an eval
+// and a game-ply. The model fits rather accurately the LTC fishtest statistics.
+double UCI::win_rate_model_double(double v, int ply) {
+
+   // The model captures only up to 240 plies, so limit input (and rescale)
+   double m = std::min(240, ply) / 64.0;
+
+   // Coefficients of a 3rd order polynomial fit based on fishtest data
+   // for two parameters needed to transform eval to the argument of a
+   // logistic function.
+   double as[] = {-8.24404295, 64.23892342, -95.73056462, 153.86478679};
+   double bs[] = {-3.37154371, 28.44489198, -56.67657741,  72.05858751};
+   double a = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
+   double b = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
+
+   // Transform eval to centipawns with limited range
+     double x = std::clamp(double(100 * v) / PawnValueEg, -1000.0, 1000.0);
+
+   // Return win rate in per mille
+   return 1000.0 / (1 + std::exp((a - x) / b));
+}
+
+// --------------------
+// Call qsearch(),search() directly for testing
+// --------------------
+
+void qsearch_cmd(Position& pos)
+{
+  cout << "qsearch : ";
+  auto pv = Search::qsearch(pos);
+  cout << "Value = " << pv.first << " , " << UCI::value(pv.first) << " , PV = ";
+  for (auto m : pv.second)
+    cout << UCI::move(m, false) << " ";
+  cout << endl;
+}
+
+void search_cmd(Position& pos, istringstream& is)
+{
+  string token;
+  int depth = 1;
+  int multi_pv = (int)Options["MultiPV"];
+  while (is >> token)
+  {
+    if (token == "depth")
+      is >> depth;
+    if (token == "multipv")
+      is >> multi_pv;
+  }
+
+  cout << "search depth = " << depth << " , multi_pv = " << multi_pv << " : ";
+  auto pv = Search::search(pos, depth, multi_pv);
+  cout << "Value = " << pv.first << " , " << UCI::value(pv.first) << " , PV = ";
+  for (auto m : pv.second)
+    cout << UCI::move(m, false) << " ";
+  cout << endl;
+}
 
 /// UCI::loop() waits for a command from stdin, parses it and calls the appropriate
 /// function. Also intercepts EOF from stdin to ensure gracefully exiting if the
@@ -274,7 +340,7 @@ void UCI::loop(int argc, char* argv[]) {
       is >> skipws >> token;
 
       if (    token == "quit"
-                ||  token == "stop")
+          ||  token == "stop")
       	{
           if (token == "quit" && !Options["Read only learning"] && !pauseExperience)
           //from Kelly begin
@@ -289,6 +355,7 @@ void UCI::loop(int argc, char* argv[]) {
           //from Kelly end
       	  Threads.stop = true;
       	}
+
       // The GUI sends 'ponderhit' to tell us the user has played the expected move.
       // So 'ponderhit' will be sent if we were told to ponder on the same move the
       // user has played. We should continue searching but switch from pondering to
@@ -301,7 +368,7 @@ void UCI::loop(int argc, char* argv[]) {
                     << "\n"       << Options
                     << "\nuciok"  << sync_endl;
 
-      else if (token == "setoption")  setoption(is);
+      else if (token == "setoption")  setoption_from_stream(is);
       else if (token == "go")         go(pos, is, states);
       else if (token == "position")   position(pos, is, states);
       else if (token == "ucinewgame")
@@ -330,6 +397,35 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "d")        sync_cout << pos << sync_endl;
       else if (token == "eval")     trace_eval(pos);
       else if (token == "compiler") sync_cout << compiler_info() << sync_endl;
+      else if (token == "gensfen") Learner::gensfen(is);
+      else if (token == "gensfen_nonpv") Learner::gensfen_nonpv(is);
+      else if (token == "learn") Learner::learn(is);
+      else if (token == "convert") Learner::convert(is);
+      else if (token == "convert_bin") Learner::convert_bin(is);
+      else if (token == "convert_plain") Learner::convert_plain(is);
+      else if (token == "convert_bin_from_pgn_extract") Learner::convert_bin_from_pgn_extract(is);
+      else if (token == "transform") Learner::transform(is);
+
+      // Command to call qsearch(),search() directly for testing
+      else if (token == "qsearch") qsearch_cmd(pos);
+      else if (token == "search") search_cmd(pos, is);
+      else if (token == "tasktest")
+      {
+        Threads.execute_with_workers([](auto& th) {
+          std::cout << th.thread_idx() << '\n';
+        });
+      }
+      else if (token == "blastest")
+      {
+        Blas::test(Threads);
+      }
+      else if (token == "blasbench")
+      {
+        Blas::bench(Threads);
+      }
+
+      // test command
+      else if (token == "test") test_cmd(pos, is);
       else
           sync_cout << "Unknown command: " << cmd << sync_endl;
 
@@ -424,3 +520,5 @@ Move UCI::to_move(const Position& pos, string& str) {
 
   return MOVE_NONE;
 }
+
+} // namespace Stockfish

@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include <ostream>
 #include <sstream>
 
+#include "nnue/evaluate_nnue.h"
 #include "evaluate.h"
 #include "misc.h"
 #include "search.h"
@@ -31,6 +32,8 @@
 #include "polybook.h" //cerebellum
 
 using std::string;
+
+namespace Stockfish {
 
 UCI::OptionsMap Options; // Global object
 
@@ -44,6 +47,9 @@ void on_threads(const Option& o) { Threads.set(size_t(o)); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
 void on_use_NNUE(const Option& ) { Eval::NNUE::init(); }
 void on_eval_file(const Option& ) { Eval::NNUE::init(); }
+void on_enable_transposition_table(const Option& o) {
+    TranspositionTable::enable_transposition_table = o;
+}
 //livebook begin
 void on_livebook_url(const Option& o) { Search::setLiveBookURL(o); }
 void on_livebook_timeout(const Option& o) { Search::setLiveBookTimeout(o); }
@@ -95,8 +101,14 @@ void init(OptionsMap& o) {
   o["SyzygyProbeLimit"]      << Option(7, 0, 7);
   o["Read only learning"]    << Option(false);
   o["Self Q-learning"]       << Option(false);
-  o["Use NNUE"]              << Option(true, on_use_NNUE);
+  o["Use NNUE"]              << Option("true var true var false var pure", "true", on_use_NNUE);
   o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);
+  // When learning the evaluation function, you can change the folder to save the evaluation function.
+  // Evalsave by default. This folder shall be prepared in advance.
+  // Automatically create a folder under this folder like "0/", "1/", ... and save the evaluation function file there.
+  o["EvalSaveDir"] << Option("evalsave");
+  // Enable transposition table.
+  o["EnableTranspositionTable"] << Option(true, on_enable_transposition_table);
   o["Live Book"]             << Option(false);
   o["Live Book URL"]         << Option("http://www.chessdb.cn/cdb.php", on_livebook_url);
   o["Live Book Timeout"]     << Option(5000, 0, 10000, on_livebook_timeout);
@@ -162,7 +174,7 @@ Option::operator double() const {
 }
 
 Option::operator std::string() const {
-  assert(type == "string");
+  assert(type == "check" || type == "spin" || type == "combo" || type == "button" || type == "string");
   return currentValue;
 }
 
@@ -218,3 +230,5 @@ Option& Option::operator=(const string& v) {
 }
 
 } // namespace UCI
+
+} // namespace Stockfish

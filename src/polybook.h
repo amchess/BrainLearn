@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "position.h"
 #include "string.h"
 
+namespace Stockfish {
 typedef struct {
     uint64_t key;
     uint16_t move;
@@ -88,4 +89,5 @@ private:
 
 extern PolyBook polybook;
 extern PolyBook polybook2;
+} // namespace Stockfish
 #endif // #ifndef POLYBOOK_H_INCLUDED

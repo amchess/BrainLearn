@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2020 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 
 #include "../nnue_common.h"
 
-namespace Eval::NNUE::Layers {
+namespace Stockfish::Eval::NNUE::Layers {
 
 // Input layer
 template <IndexType OutputDimensions, IndexType Offset = 0>
@@ -41,6 +41,8 @@ class InputSlice {
   // Size of forward propagation buffer used from the input layer to this layer
   static constexpr std::size_t kBufferSize = 0;
 
+  static constexpr int kLayerIndex = 1;
+
   // Hash value embedded in the evaluation file
   static constexpr std::uint32_t GetHashValue() {
     std::uint32_t hash_value = 0xEC42E90Du;
@@ -48,9 +50,33 @@ class InputSlice {
     return hash_value;
   }
 
+    static std::string get_name() {
+        return "InputSlice[" + std::to_string(kOutputDimensions) + "(" +
+            std::to_string(Offset) + ":" +
+            std::to_string(Offset + kOutputDimensions) + ")]";
+    }
+
+    // A string that represents the structure from the input layer to this layer
+    static std::string get_structure_string() {
+        return get_name();
+    }
+
+    static std::string get_layers_info() {
+        std::string info = "  - ";
+        info += std::to_string(kLayerIndex);
+        info += " - ";
+        info += get_name();
+        return info;
+    }
+
   // Read network parameters
   bool ReadParameters(std::istream& /*stream*/) {
     return true;
+  }
+
+  // write parameters
+  bool WriteParameters(std::ostream& /*stream*/) const {
+      return true;
   }
 
   // Forward propagation
@@ -63,6 +89,6 @@ class InputSlice {
  private:
 };
 
-}  // namespace Layers
+}  // namespace Stockfish::Eval::NNUE::Layers
 
 #endif // #ifndef NNUE_LAYERS_INPUT_SLICE_H_INCLUDED
