@@ -68,7 +68,6 @@ namespace {
 
 } // namespace
 
-
 bool Bitbases::probe(Square wksq, Square wpsq, Square bksq, Color stm) {
 
   assert(file_of(wpsq) <= FILE_D);
@@ -97,7 +96,6 @@ void Bitbases::init() {
       if (db[idx] == WIN)
           KPKBitbase.set(idx);
 }
-
 
 namespace {
 
