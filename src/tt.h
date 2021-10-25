@@ -21,7 +21,7 @@
 
 #include "misc.h"
 #include "types.h"
-#include <unordered_map> //from Kelly
+
 namespace Stockfish {
 
 /// TTEntry struct is the 10 bytes transposition table entry, defined as below:
@@ -99,48 +99,6 @@ private:
   Cluster* table;
   uint8_t generation8; // Size must be not bigger than TTEntry::genBound8
 };
-
-//from Kelly begin
-extern bool pauseExperience;
-
-struct LearningFileEntry
-{
-	Key hashKey = 0;
-	Depth depth = 0;
-	Value score = VALUE_NONE;
-	Move move = MOVE_NONE;
-	int performance = 100;
-};
-struct MoveInfo
-{
-	Move move = MOVE_NONE;
-	Depth depth = 0;
-	Value score = VALUE_NONE;
-	int performance = 100;
-};
-
-
-struct NodeInfo
-{
-	Key hashKey;
-	MoveInfo latestMoveInfo;
-	std::vector<MoveInfo> siblingMoveInfo;
-};
-
-
-// The Monte-Carlo tree is stored implicitly in one big hash table
-typedef std::unordered_multimap<Key, NodeInfo> LearningHashTable;
-void setLearningStructures ();
-void writeLearningFile();
-
-void insertIntoOrUpdateLearningTable(LearningFileEntry& tempExpEntry);
-
-NodeInfo *getNodeFromHT(Key key);
-
-Value makeExpValue(LearningFileEntry fileExpEntry);
-
-extern LearningHashTable globalLearningHT;
-//from Kelly end
 
 extern TranspositionTable TT;
 
