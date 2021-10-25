@@ -26,7 +26,7 @@
 #include "search.h"
 #include "syzygy/tbprobe.h"
 #include "thread.h"
-#include "tt.h"
+#include "learn.h"
 #include "uci.h"
 #include "polybook.h" //cerebellum
 using namespace Stockfish;
@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
   Utility::init(argv[0]); //Khalid
   UCI::init(Options);
   Tune::init();
-  setLearningStructures ();//Kelly
+  LD.init();//Kelly
   PSQT::init();
   Bitboards::init();
   Position::init();
