@@ -99,6 +99,7 @@ void init(OptionsMap& o) {
   o["Multi MinVisits"]       << Option(5, 0, 1000);
   o["Use NNUE"]              << Option(true, on_use_NNUE);
   o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);
+  //livebook begin
   o["Live Book"]             << Option(false);
   o["Live Book URL"]         << Option("http://www.chessdb.cn/cdb.php", on_livebook_url);
   o["Live Book Timeout"]     << Option(5000, 0, 10000, on_livebook_timeout);
@@ -106,10 +107,13 @@ void init(OptionsMap& o) {
   o["Live Book Diversity"]   << Option(false);
   o["Live Book Contribute"]  << Option(false);
   o["Live Book Depth"]       << Option(100, 1, 100, on_livebook_depth);
+  //livebook end
+  //cerebellum book begin
   o["BookFile"]              << Option("<empty>", on_book_file);
   o["BookFile2"]             << Option("<empty>", on_book_file2);
   o["BestBookMove"]          << Option(true, on_best_book_move);
   o["BookDepth"]             << Option(255, 1, 255, on_book_depth);
+  //cerebellum book end
   o["Opening variety"]       << Option (0, 0, 40);
   o["Concurrent Experience"] << Option (false);
 }

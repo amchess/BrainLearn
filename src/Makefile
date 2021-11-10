@@ -317,7 +317,7 @@ endif
 ### 3.1 Selecting compiler (default = gcc)
 CXXFLAGS += -Wall -Wcast-qual -fexceptions -std=c++17 $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++17
-LDFLAGS += -lcurl $(EXTRALDFLAGS)
+LDFLAGS += -lcurl -lws2_32 $(EXTRALDFLAGS)
 
 ifeq ($(COMP),)
 	COMP=gcc
@@ -751,7 +751,7 @@ profile-build: net config-sanity objclean profileclean
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_make)
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
-	$(PGOBENCH) > /dev/null
+	$(PGOBENCH) 2>&1 | tail -n 4
 	@echo ""
 	@echo "Step 3/4. Building optimized executable ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) objclean
