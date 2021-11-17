@@ -38,7 +38,6 @@ namespace Stockfish {
 
 extern vector<string> setup_bench(const Position&, istream&);
 
-int maximumPly = 0; //Kelly
 namespace {
 
   // FEN string of the initial position, normal chess
@@ -69,29 +68,22 @@ namespace {
 
     states = StateListPtr(new std::deque<StateInfo>(1)); // Drop old and create a new one
     pos.set(fen, Options["UCI_Chess960"], &states->back(), Threads.main());
-    int plies = 0;//Kelly
 
     // Parse move list (if any)
     while (is >> token && (m = UCI::to_move(pos, token)) != MOVE_NONE)
     {
         //Kelly begin
-        plies++;
-        if (plies > maximumPly)
+        if (LD.is_enabled() && LD.learning_mode() != LearningMode::Self && !LD.is_readonly() && !LD.is_paused())
         {
-            if (!Options["Self Q-learning"])
-            {
-                PersistedLearningMove persistedLearningMove;
+            PersistedLearningMove persistedLearningMove;
 
-                persistedLearningMove.key = pos.key();
-                persistedLearningMove.learningMove.depth = 0;
-                persistedLearningMove.learningMove.move = m;
-                persistedLearningMove.learningMove.score = VALUE_NONE;
-                persistedLearningMove.learningMove.performance = 100;
+            persistedLearningMove.key = pos.key();
+            persistedLearningMove.learningMove.depth = 0;
+            persistedLearningMove.learningMove.move = m;
+            persistedLearningMove.learningMove.score = VALUE_NONE;
+            persistedLearningMove.learningMove.performance = 100;
 
-                LD.add_new_learning(persistedLearningMove.key, persistedLearningMove.learningMove);
-            }
-
-            maximumPly = plies;
+            LD.add_new_learning(persistedLearningMove.key, persistedLearningMove.learningMove);
         }
         //Kelly end
 
@@ -207,13 +199,11 @@ namespace {
         else if (token == "setoption")  setoption(is);
         else if (token == "position")   position(pos, is, states);
         else if (token == "ucinewgame") {
-            //Kelly begin
-            maximumPly = 0;
-            setStartPoint();
-            if (Options["Self Q-learning"])
-            {
+            //Kelly begin            
+            if (LD.is_enabled() && LD.learning_mode() == LearningMode::Self && !LD.is_readonly() && !LD.is_paused())
                 putGameLineIntoLearningTable();
-            }
+
+            setStartPoint();
             //Kelly end
 
             Search::clear(); elapsed = now(); // Search::clear() may take some while
@@ -287,14 +277,14 @@ void UCI::loop(int argc, char* argv[]) {
           Threads.stop = true;
 
           //Kelly begin
-          if (token == "quit" && !Options["Read only learning"] && !LD.is_paused())
+          if (token == "quit" && LD.is_enabled() && !LD.is_readonly() && !LD.is_paused())
           {
               //Wait for the current search operation (if any) to stop
               //before proceeding to save experience data
               Threads.main()->wait_for_search_finished();
 
               //Perform Q-learning if enabled
-              if (Options["Self Q-learning"])
+              if (LD.learning_mode() == LearningMode::Self)
                   putGameLineIntoLearningTable();
 
               //Save to learning file
@@ -320,16 +310,17 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "ucinewgame")
       {
           //Kelly and Khalid
-          maximumPly = 0;
-          setStartPoint();
+          if (LD.is_enabled() && !LD.is_readonly() && !LD.is_paused())
+          {
+              //Perform Q-learning if enabled
+              if (LD.learning_mode() == LearningMode::Self)
+                  putGameLineIntoLearningTable();
 
-          //Perform Q-learning if enabled
-          if (Options["Self Q-learning"])
-              putGameLineIntoLearningTable();
-
-          //Save to learning file
-          if (!Options["Read only learning"])
+              //Save to learning file
               LD.persist();
+
+              setStartPoint();
+          }
 
           Search::clear();//Kelly and Khalid end
       }
