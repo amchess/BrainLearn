@@ -9,6 +9,20 @@ using namespace Stockfish;
 
 LearningData LD;
 
+namespace
+{
+    LearningMode identify_learning_mode(const std::string& lm)
+    {
+        //if (lm == "Off")
+        //    return LearningMode::Off;
+
+        if (lm == "Standard")
+            return LearningMode::Standard;
+
+        return LearningMode::Self;
+    }
+}
+
 bool LearningData::load(const std::string& filename)
 {
     std::ifstream in(filename, std::ios::in | std::ios::binary);
@@ -54,7 +68,7 @@ bool LearningData::load(const std::string& filename)
     mainDataBuffers.push_back(fileData);
 
     //Loop the moves from this file
-    bool qLearning = (bool)Options["Self Q-learning"];
+    bool qLearning = (learningMode == LearningMode::Self);
     PersistedLearningMove *persistedLearningMove = (PersistedLearningMove*)fileData;
     do
     {
@@ -152,7 +166,7 @@ void LearningData::insert_or_update(PersistedLearningMove *plm, bool qLearning)
     }
 }
 
-LearningData::LearningData() : isPaused(false), needPersisting(false) {}
+LearningData::LearningData() : isPaused(false), isReadOnly(false), needPersisting(false), learningMode(LearningMode::Standard) {}
 
 LearningData::~LearningData()
 {
@@ -181,7 +195,11 @@ void LearningData::clear()
 
 void LearningData::init()
 {
-    clear();
+	clear();
+
+    learningMode = identify_learning_mode(Options["Persisted learning"]);
+    if (learningMode == LearningMode::Off)
+        return;
 
     load(Utility::map_path("experience.bin"));
 
@@ -218,11 +236,32 @@ void LearningData::init()
     needPersisting = false;
 }
 
+void LearningData::set_learning_mode(const std::string& lm)
+{
+    LearningMode newLearningMode = identify_learning_mode(lm);
+    if (newLearningMode == learningMode)
+        return;
+
+    init();
+}
+
+LearningMode LearningData::learning_mode() const
+{
+    return learningMode;
+}
+
 void LearningData::persist()
 {
     //Quick exit if we have nothing to persist
     if (HT.empty() || !needPersisting)
         return;
+
+    if (isReadOnly)
+    {
+        //We should not be here if we are running in ReadOnly mode
+        assert(false);
+        return;
+    }
 
     /*
         To avoid any problems when saving to experience file, we will actually do the following:
@@ -289,13 +328,15 @@ void LearningData::resume()
     isPaused = false;
 }
 
-bool LearningData::is_paused()
-{
-    return isPaused;
-}
-
 void LearningData::add_new_learning(Key key, const LearningMove& lm)
 {
+    if (isReadOnly)
+    {
+        //We should not be here if we are running in ReadOnly mode
+        assert(false);
+        return;
+    }
+
     //Allocate buffer to read the entire file
     PersistedLearningMove *newPlm = (PersistedLearningMove *)malloc(sizeof(PersistedLearningMove));
     if (!newPlm)
@@ -312,7 +353,7 @@ void LearningData::add_new_learning(Key key, const LearningMove& lm)
     newPlm->learningMove = lm;
 
     //Add to HT
-    insert_or_update(newPlm, (bool)Options["Self Q-learning"]);
+    insert_or_update(newPlm, learningMode == LearningMode::Self);
 }
 
 int LearningData::probe(Key key, const LearningMove*& learningMove)

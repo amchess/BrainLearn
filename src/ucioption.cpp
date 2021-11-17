@@ -24,6 +24,7 @@
 #include "evaluate.h"
 #include "misc.h"
 #include "search.h"
+#include "learn.h"
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
@@ -46,6 +47,8 @@ void on_threads(const Option& o) { Threads.set(size_t(o)); }
 void on_tb_path(const Option& o) { Tablebases::init(o); }
 void on_use_NNUE(const Option& ) { Eval::NNUE::init(); }
 void on_eval_file(const Option& ) { Eval::NNUE::init(); }
+void on_readonly_learning(const Option& o) { LD.set_readonly(o); }
+void on_self_qlearning(const Option& o) { LD.set_learning_mode((bool)o ? "Self" : "Standard"); }
 //livebook begin
 void on_livebook_url(const Option& o) { Search::setLiveBookURL(o); }
 void on_livebook_timeout(const Option& o) { Search::setLiveBookTimeout(o); }
@@ -92,8 +95,8 @@ void init(OptionsMap& o) {
   o["SyzygyProbeDepth"]      << Option(1, 1, 100);
   o["Syzygy50MoveRule"]      << Option(true);
   o["SyzygyProbeLimit"]      << Option(7, 0, 7);
-  o["Read only learning"]    << Option(false);
-  o["Self Q-learning"]       << Option(false);
+  o["Read only learning"]    << Option(false, on_readonly_learning);
+  o["Self Q-learning"]       << Option(false, on_self_qlearning);
   o["MCTS"]                  << Option("Off var Off var Single var Multi", "Off");
   o["Multi Strategy"]        << Option(20, 0, 100);
   o["Multi MinVisits"]       << Option(5, 0, 1000);
