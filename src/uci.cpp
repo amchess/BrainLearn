@@ -73,7 +73,7 @@ namespace {
     while (is >> token && (m = UCI::to_move(pos, token)) != MOVE_NONE)
     {
         //Kelly begin
-        if (LD.is_enabled() && LD.learning_mode() != LearningMode::Self && !LD.is_readonly() && !LD.is_paused())
+        if (LD.is_enabled() && LD.learning_mode() != LearningMode::Self && !LD.is_paused())
         {
             PersistedLearningMove persistedLearningMove;
 
@@ -200,11 +200,15 @@ namespace {
         else if (token == "position")   position(pos, is, states);
         else if (token == "ucinewgame") {
             //Kelly begin            
-            if (LD.is_enabled() && LD.learning_mode() == LearningMode::Self && !LD.is_readonly() && !LD.is_paused())
-                putGameLineIntoLearningTable();
-
-            setStartPoint();
-            //Kelly end
+            if (LD.is_enabled())
+            { 
+            	if (LD.learning_mode() == LearningMode::Self && !LD.is_paused())
+	            {
+	                putGameLineIntoLearningTable();
+	        	}
+            	setStartPoint();
+			}
+			//Kelly end
 
             Search::clear(); elapsed = now(); // Search::clear() may take some while
         }
@@ -277,7 +281,7 @@ void UCI::loop(int argc, char* argv[]) {
           Threads.stop = true;
 
           //Kelly begin
-          if (token == "quit" && LD.is_enabled() && !LD.is_readonly() && !LD.is_paused())
+          if (token == "quit" && LD.is_enabled() && !LD.is_paused())
           {
               //Wait for the current search operation (if any) to stop
               //before proceeding to save experience data
@@ -285,10 +289,14 @@ void UCI::loop(int argc, char* argv[]) {
 
               //Perform Q-learning if enabled
               if (LD.learning_mode() == LearningMode::Self)
+              {
                   putGameLineIntoLearningTable();
-
-              //Save to learning file
-              LD.persist();
+			  }
+			  if(!LD.is_readonly())
+			  {
+              	//Save to learning file
+              	LD.persist();
+              }
           }
           //Kelly end
       }
@@ -310,18 +318,21 @@ void UCI::loop(int argc, char* argv[]) {
       else if (token == "ucinewgame")
       {
           //Kelly and Khalid
-          if (LD.is_enabled() && !LD.is_readonly() && !LD.is_paused())
+          if (LD.is_enabled())
           {
               //Perform Q-learning if enabled
               if (LD.learning_mode() == LearningMode::Self)
+              {
                   putGameLineIntoLearningTable();
+			  }
 
-              //Save to learning file
-              LD.persist();
-
-              setStartPoint();
+              if(!LD.is_readonly())
+              {
+	              //Save to learning file
+	              LD.persist();
+              }
+          	  setStartPoint();
           }
-
           Search::clear();//Kelly and Khalid end
       }
       else if (token == "isready")    sync_cout << "readyok" << sync_endl;
