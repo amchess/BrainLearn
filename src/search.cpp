@@ -49,6 +49,9 @@ extern "C" {
 //livebook end
 
 //Kelly begin
+bool useLearning = true;
+bool enabledLearningProbe=false;
+
 std::vector<PersistedLearningMove> gameLine;
 //Kelly end
 
@@ -278,6 +281,10 @@ void MainThread::search() {
   Color us = rootPos.side_to_move();
   Time.init(Limits, us, rootPos.game_ply());
   TT.new_search();
+  //Kelly begin
+  enabledLearningProbe = false;
+  useLearning = true;
+  //Kelly end
 
   openingVariety = Options["Opening variety"];//from Sugar
   Eval::NNUE::verify(); 
@@ -383,7 +390,7 @@ void MainThread::search() {
   bestPreviousScore = bestThread->rootMoves[0].score;
 
   //Kelly begin	
-  if (bestThread->completedDepth > 4 && LD.is_enabled() && !LD.is_paused() && !LD.is_readonly())// from Khalid
+  if (bestThread->completedDepth > 4 && LD.is_enabled() && !LD.is_paused())// from Khalid
   {
       PersistedLearningMove plm;
       plm.key = rootPos.key();
@@ -405,6 +412,10 @@ void MainThread::search() {
           LD.add_new_learning(plm.key, plm.learningMove);
       }
   }
+  if (!enabledLearningProbe)
+  {
+      useLearning = false;
+  }
   //Kelly end
   
   // Send again PV info if we have a new best thread
@@ -420,14 +431,17 @@ void MainThread::search() {
 
   //from Khalid begin
   //Save learning data if game is already decided
-  if (Utility::is_game_decided(rootPos, bestThread->rootMoves[0].score) && LD.is_enabled() && !LD.is_paused() && !LD.is_readonly())
+  if (Utility::is_game_decided(rootPos, bestThread->rootMoves[0].score) && LD.is_enabled() && !LD.is_paused())
   {
       //Perform Q-learning if enabled
       if(LD.learning_mode() == LearningMode::Self)
           putGameLineIntoLearningTable();
 
       //Save to learning file
-      LD.persist();
+	  if(!LD.is_readonly())
+	  {
+	  	LD.persist();
+	  }
 
       //Stop learning until we receive *ucinewgame* command
       LD.pause();
@@ -909,7 +923,7 @@ namespace {
     expTTHit = false;
     updatedLearning = false;
 
-    if (!excludedMove && LD.is_enabled())
+    if (!excludedMove && LD.is_enabled()&& useLearning)
     {
         const LearningMove *learningMove = nullptr;
         sibs = LD.probe(posKey, learningMove);
@@ -917,6 +931,7 @@ namespace {
         {
             assert(sibs);
 
+            enabledLearningProbe = true;
             expTTHit = true;
             if (!ttMove)
             {
@@ -2389,6 +2404,7 @@ void putGameLineIntoLearningTable()
 
 void setStartPoint()
 {
+  useLearning = true;
   LD.resume();
 }
 //Kelly end
