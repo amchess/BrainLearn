@@ -764,12 +764,10 @@ void MonteCarlo::generate_moves() {
 	//MovePicker mp(pos, ttMove, depth, mh, cph, contHist, prevSq);
 		
 		MovePicker mp(pos, ttMove, depth, mh,
-                                      &thread->lowPlyHistory,
                                       cph,
                                       contHist,
                                       countermove,
-                                      killers,
-                                      ply);
+                                      killers);
         Move move;
         Reward prior;
         int moveCount = 0;
