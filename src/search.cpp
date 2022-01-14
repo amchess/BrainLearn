@@ -1495,9 +1495,8 @@ moves_loop: // When in check, search starts from here
               && !likelyFailLow)
               r -= 2;
 
-          // Increase reduction at non-PV nodes when the best move does not change frequently
-          if (  !PvNode
-              && thisThread->bestMoveChanges <= 2)
+          // Increase reduction at non-PV nodes
+          if (!PvNode)
               r++;
 
           // Decrease reduction if opponent's move count is high (~1 Elo)
