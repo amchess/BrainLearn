@@ -161,8 +161,10 @@ void ThreadPool::clear() {
 
   main()->callsCnt = 0;
   main()->bestPreviousScore = VALUE_INFINITE;
+  main()->bestPreviousAverageScore = VALUE_INFINITE;
   main()->previousTimeReduction = 1.0;
 }
+
 
 /// ThreadPool::start_thinking() wakes up main thread waiting in idle_loop() and
 /// returns immediately. Main thread will wake up other threads and start the search.
