@@ -13,8 +13,8 @@ namespace
 {
     LearningMode identify_learning_mode(const std::string& lm)
     {
-        //if (lm == "Off")
-        //    return LearningMode::Off;
+        if (lm == "Off")
+            return LearningMode::Off;
 
         if (lm == "Standard")
             return LearningMode::Standard;
@@ -197,7 +197,7 @@ void LearningData::init()
 {
 	clear();
 
-    learningMode = identify_learning_mode(Options["Persisted learning"]);
+    learningMode = identify_learning_mode((bool)Options["Self Q-learning"] ? "Self" : "Standard");
     if (learningMode == LearningMode::Off)
         return;
 
