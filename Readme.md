@@ -20,7 +20,7 @@ It is a collection of one or more positions stored with the following format (si
 - _board signature (hash key)_
 - _best move depth_
 - _best move score_
-- _best move performance_ , a new parameter you can calculate with any learning application supporting this specification. The idea is to calculate it based on pattern recognition concept. In the portal, you can also exploit the reports of another NLG (virtual trainer) application and buy the products in the digishop based on all this. This open-source part has the performance default. So, it doesn't use it. Clearly, even if already strong, this private learning algorithm is a lot stronger as demostrate here: [Graphical result](https://github.com/amchess/BrainLearn/tree/master/tests/6-5.jpg)
+- _best move performance_ , a new parameter you can calculate with any learning application supporting this specification. An example is the private one, kernel of SaaS part of [ChessProbe](http://www.chessprobe.com) AI portal. The idea is to calculate it based on pattern recognition concept. In the portal, you can also exploit the reports of another NLG (virtual trainer) application and buy the products in the digishop based on all this. This open-source part has the performance default. So, it doesn't use it. Clearly, even if already strong, this private learning algorithm is a lot stronger as demostrate here: [Graphical result](https://github.com/amchess/BrainLearn/tree/master/tests/6-5.jpg)
 
 This file is loaded in an hashtable at the engine load and updated each time the engine receive quit or stop uci command.
 When BrainLearn starts a new game or when we have max 8 pieces on the chessboard, the learning is activated and the hash table updated each time the engine has a best score
@@ -57,10 +57,15 @@ _Boolean, Default: False_
 If activated, the learning algorithm is the [Q-learning](https://youtu.be/qhRNvCVVJaA?list=PLZbbT5o_s2xoWNVdDudn51XM8lOuZ_Njv), optimized for self play. Some GUIs don't write the experience file in some game's modes because the uci protocol is differently implemented
 
 ### MonteCarlo Tree Search section (experimental: thanks to original Stephan Nicolet work)
-#### MCTS
+#### MCTS (checkbox)
 
-Default is Off: no MonteCarlo Tree Search algorithm. The other values are "Single" and "Multi", 
-where "Single" means only one thread different from the main one does MCTS and "Multi" means all threads but main one does MCTS
+_Boolean, Default: False_ If activated, the engine uses the livebook as primary choice.
+
+#### MCTSThreads
+
+_Integer, Default: 0, Min: 0, Max: 512_
+The number of settled threads to use for MCTS search except the first (main) one always for alpha-beta search. 
+In particular, if the number is greater than threads number, they will all do a montecarlo tree search, always except the first (main) for alpha-beta search.
 
 #### Multi Strategy 
 

@@ -1,5 +1,5 @@
 # Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-# Copyright (C) 2004-2021 The Stockfish developers (see AUTHORS file)
+# Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
 #
 # Stockfish is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,13 +39,14 @@ endif
 
 ### Source and object files
 SRCS = benchmark.cpp bitbase.cpp bitboard.cpp endgame.cpp evaluate.cpp learn.cpp main.cpp \
-	material.cpp misc.cpp montecarlo.cpp movegen.cpp movepick.cpp pawns.cpp polybook.cpp position.cpp psqt.cpp \
-	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp syzygy/tbprobe.cpp \
+	material.cpp misc.cpp movegen.cpp movepick.cpp pawns.cpp polybook.cpp position.cpp psqt.cpp \
+	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp \
+	mcts/montecarlo.cpp syzygy/tbprobe.cpp \
 	nnue/evaluate_nnue.cpp nnue/features/half_ka_v2_hm.cpp
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
 
-VPATH = syzygy:nnue:nnue/features
+VPATH = mcts:syzygy:nnue:nnue/features
 
 ### Establish the operating system name
 KERNEL = $(shell uname -s)
@@ -404,8 +405,10 @@ ifeq ($(COMP),clang)
 	ifneq ($(KERNEL),Darwin)
 	ifneq ($(KERNEL),OpenBSD)
 	ifneq ($(KERNEL),FreeBSD)
+	ifneq ($(findstring MINGW,$(KERNEL)),MINGW)
 	ifneq ($(RTLIB),compiler-rt)
 		LDFLAGS += -latomic
+	endif
 	endif
 	endif
 	endif
@@ -420,6 +423,11 @@ ifeq ($(COMP),clang)
 		CXXFLAGS += -m$(bits)
 		LDFLAGS += -m$(bits)
 	endif
+
+	ifeq ($(findstring MINGW,$(KERNEL)),MINGW)
+		LDFLAGS += -static
+	endif
+
 endif
 
 ifeq ($(KERNEL),Darwin)
@@ -522,11 +530,17 @@ ifeq ($(optimize),yes)
 		endif
 	endif
 
-	ifeq ($(comp),$(filter $(comp),gcc clang icc))
-		ifeq ($(KERNEL),Darwin)
-			CXXFLAGS += -mdynamic-no-pic
-		endif
-	endif
+    ifeq ($(KERNEL),Darwin)
+        ifeq ($(comp),$(filter $(comp),clang icc))
+            CXXFLAGS += -mdynamic-no-pic
+        endif
+
+        ifeq ($(comp),gcc)
+            ifneq ($(arch),arm64)
+                CXXFLAGS += -mdynamic-no-pic
+            endif
+        endif
+    endif
 
 	ifeq ($(comp),clang)
 		CXXFLAGS += -fexperimental-new-pass-manager
