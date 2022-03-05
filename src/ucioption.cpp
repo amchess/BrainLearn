@@ -24,8 +24,8 @@
 #include "evaluate.h"
 #include "misc.h"
 #include "search.h"
-#include "learn.h"
 #include "thread.h"
+#include "learn.h"
 #include "tt.h"
 #include "uci.h"
 #include "syzygy/tbprobe.h"
@@ -101,6 +101,8 @@ void init(OptionsMap& o) {
   o["Multi Strategy"]        << Option(20, 0, 100);
   o["Multi MinVisits"]       << Option(5, 0, 1000);
   o["Use NNUE"]              << Option(true, on_use_NNUE);
+  // The default must follow the format nn-[SHA256 first 12 digits].nnue
+  // for the build process (profile-build and fishtest) to work.
   o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);
   //livebook begin
   o["Live Book"]             << Option(false);

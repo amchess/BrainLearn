@@ -69,6 +69,7 @@ namespace {
     { V(-17), V( -13), V( 100), V(  4), V(  9), V(-16), V(-31) }
   };
 
+
   // KingOnFile[semi-open Us][semi-open Them] contains bonuses/penalties
   // for king when the king is on a semi-open or open file.
   constexpr Score KingOnFile[2][2] = {{ S(-21,10), S(-7, 1)  },
@@ -199,6 +200,7 @@ namespace {
 } // namespace
 
 namespace Pawns {
+
 
 /// Pawns::probe() looks up the current position's pawns configuration in
 /// the pawns hash table. It returns a pointer to the Entry if the position
