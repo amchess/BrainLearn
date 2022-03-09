@@ -47,8 +47,8 @@ int main(int argc, char* argv[]) {
   Endgames::init();
   Threads.set(size_t(Options["Threads"]));
   //cerebellum begin
-  polybook.init(Options["BookFile"]);
-  polybook2.init(Options["BookFile2"]);
+  polybook[0].init(Options["Book1 File"]);
+  polybook[1].init(Options["Book2 File"]);
   //cerebellum end
   Search::clear(); // After threads are up
   Eval::NNUE::init();
