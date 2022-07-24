@@ -170,7 +170,7 @@ namespace Utility {
 ///
 /// Use <https://www.desmos.com/calculator/jhh83sqq92> to draw the sigmoid
 
-inline int64_t sigmoid(int64_t t, int64_t x0,
+/*inline int64_t sigmoid(int64_t t, int64_t x0,
                                   int64_t y0,
                                   int64_t  C,
                                   int64_t  P,
@@ -179,7 +179,7 @@ inline int64_t sigmoid(int64_t t, int64_t x0,
    assert(C > 0);
    assert(Q != 0);
    return y0 + P * (t-x0) / (Q * (std::abs(t-x0) + C)) ;
-}
+}*/
 
 
 /// xorshift64star Pseudo-Random Number Generator
