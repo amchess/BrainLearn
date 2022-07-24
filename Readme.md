@@ -20,7 +20,7 @@ It is a collection of one or more positions stored with the following format (si
 - _board signature (hash key)_
 - _best move depth_
 - _best move score_
-- _best move performance_ , a new parameter you can calculate with any learning application supporting this specification. An example is the private one, kernel of SaaS part of [ChessProbe](http://www.chessprobe.com) AI portal. The idea is to calculate it based on pattern recognition concept. In the portal, you can also exploit the reports of another NLG (virtual trainer) application and buy the products in the digishop based on all this. This open-source part has the performance default. So, it doesn't use it. Clearly, even if already strong, this private learning algorithm is a lot stronger as demostrate here: [Graphical result](https://github.com/amchess/BrainLearn/tree/master/tests/6-5.jpg)
+- _best move performance_ , a new parameter you can calculate with any learning application supporting this specification. An example is the private one, kernel of SaaS part of [Alpha-Chess](http://www.alpha-chess.com) AI portal. The idea is to calculate it based on pattern recognition concept. In the portal, you can also exploit the reports of another NLG (virtual trainer) application and buy the products in the digishop based on all this. This open-source part has the performance default. So, it doesn't use it. Clearly, even if already strong, this private learning algorithm is a lot stronger as demostrate here: [Graphical result](https://github.com/amchess/BrainLearn/tree/master/tests/6-5.jpg)
 
 This file is loaded in an hashtable at the engine load and updated each time the engine receive quit or stop uci command.
 When BrainLearn starts a new game or when we have max 8 pieces on the chessboard, the learning is activated and the hash table updated each time the engine has a best score
@@ -59,7 +59,7 @@ If activated, the learning algorithm is the [Q-learning](https://youtu.be/qhRNvC
 ### MonteCarlo Tree Search section (experimental: thanks to original Stephan Nicolet work)
 #### MCTS (checkbox)
 
-_Boolean, Default: False_ If activated, the engine uses the livebook as primary choice.
+_Boolean, Default: False_ If activated, the engine uses the MonteCarlo Tree Search in the manner specified by the following parameters.
 
 #### MCTSThreads
 
