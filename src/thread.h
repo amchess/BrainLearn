@@ -56,6 +56,7 @@ public:
   void start_searching();
   void wait_for_search_finished();
   size_t id() const { return idx; }
+  bool is_mcts() const { return isMCTS; }
 
   Pawns::Table pawnsTable;
   Material::Table materialTable;
@@ -76,6 +77,7 @@ public:
   CapturePieceToHistory captureHistory;
   ContinuationHistory continuationHistory[2][2];
   //Score trend;
+  bool isMCTS;
 };
 
 
