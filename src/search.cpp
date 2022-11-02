@@ -526,7 +526,7 @@ void Thread::search() {
   int searchAgainCounter = 0;
   //mcts begin
   bool maybeDraw = rootPos.rule50_count() >= 90 || rootPos.has_game_cycle(2);
-  int mctsThreads = Options["MCTSThreads"];
+  mctsThreads = Options["MCTSThreads"];
   if ((Options["MCTS"])&&((((mctsThreads==1)&&(idx == 1))||
 	 ((mctsThreads > 1)&& (idx<=(size_t)mctsThreads)&&(!mainThread)))
 	 && (!maybeDraw))
@@ -1631,7 +1631,7 @@ moves_loop: // When in check, search starts here
                          - 4433;
 
           // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
-          r -= ss->statScore / 13628;
+          r -= ss->statScore / (13628 + 4000 * (depth > 7 && depth < 19));
 
           // In general we want to cap the LMR depth search at newDepth, but when
           // reduction is negative, we allow this move a limited search extension
