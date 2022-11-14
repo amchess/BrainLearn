@@ -65,7 +65,7 @@ public:
   std::atomic<uint64_t> nodes, tbHits, bestMoveChanges;
   int selDepth, nmpMinPly;
   Color nmpColor;
-  Value bestValue;//, optimism[COLOR_NB];
+  Value bestValue, optimism[COLOR_NB];
 
   Position rootPos;
   StateInfo rootState;
@@ -76,7 +76,6 @@ public:
   ButterflyHistory mainHistory;
   CapturePieceToHistory captureHistory;
   ContinuationHistory continuationHistory[2][2];
-  //Score trend;
   bool isMCTS;
 };
 
