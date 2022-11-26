@@ -110,12 +110,6 @@ typedef uint64_t Bitboard;
 constexpr int MAX_MOVES = 256;
 constexpr int MAX_PLY   = 246;
 
-//align score begin
-constexpr float CAOS_MAX_EVAL = 89.;
-constexpr float GUI_CAOS_EVAL = 32.;
-constexpr float WEIGHTED_EVAL=CAOS_MAX_EVAL/GUI_CAOS_EVAL;
-//align score end
-
 /// A move needs 16 bits to be stored
 ///
 /// bit  0- 5: destination square (from 0 to 63)
@@ -286,7 +280,29 @@ struct DirtyPiece {
   Square from[3];
   Square to[3];
 };
+inline Value getForOptimismValue(Value score) 
+{
+   Value outputValue = (Value)((float)(score) * 32 / 89);
 
+  if ((int)outputValue < -35 * PawnValueEg/ 100) {
+	  return (Value)((float)(score) * 52/ 89);
+  }
+  if (((int)outputValue >= -35 * PawnValueEg/ 100)
+		  && ((int)outputValue <= -15 * PawnValueEg/100)) {
+	  return (Value)((float)(score) * 42 / 89);
+  }
+  if (((int)outputValue < 15 * PawnValueEg/ 100)) {
+	  return (Value)((float)(score) * 32 / 89);
+  }
+  if (((int)outputValue >= 15 * PawnValueEg/ 100)
+		  && ((int)outputValue <= 35 * PawnValueEg/ 100)) {
+	  return (Value)((float)(score) * 42 / 89);
+  }
+  if ((int)outputValue > 35 * PawnValueEg/ 100) {
+	  return (Value)((float)(score) * 52 / 89);
+  }
+  return outputValue;
+}
 /// Score enum stores a middlegame and an endgame value in a single integer (enum).
 /// The least significant 16 bits are used to store the middlegame value and the
 /// upper 16 bits are used to store the endgame value. We have to take care to

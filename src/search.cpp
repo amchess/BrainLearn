@@ -22,7 +22,6 @@
 #include <cstring>   // For std::memset
 #include <iostream>
 #include <sstream>
-#include <random>  //opening variety sugar
 #include <fstream> // kelly
 #include "polybook.h"//from BrainFish
 #include "evaluate.h"
@@ -400,7 +399,7 @@ void MainThread::search() {
       plm.key = rootPos.key();
       plm.learningMove.depth = bestThread->completedDepth;
       plm.learningMove.move = bestThread->rootMoves[0].pv[0];
-      plm.learningMove.score = (Value)((float)(bestThread->rootMoves[0].score) / WEIGHTED_EVAL);
+      plm.learningMove.score = getForOptimismValue(bestThread->rootMoves[0].score);
 
       if (LD.learning_mode() == LearningMode::Self)
       {
@@ -424,7 +423,7 @@ void MainThread::search() {
   
   // Send again PV info if we have a new best thread
   if (bestThread != this)
-      sync_cout << UCI::pv(bestThread->rootPos, bestThread->completedDepth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
+      sync_cout << UCI::pv(bestThread->rootPos, bestThread->completedDepth) << sync_endl;
 
   sync_cout << "bestmove " << UCI::move(bestThread->rootMoves[0].pv[0], rootPos.is_chess960());
 
@@ -435,7 +434,7 @@ void MainThread::search() {
 
   //from Khalid begin
   //Save learning data if game is already decided
-  if (Utility::is_game_decided(rootPos, (Value)((float)(bestThread->rootMoves[0].score)/ WEIGHTED_EVAL)) && LD.is_enabled() && !LD.is_paused())
+  if (Utility::is_game_decided(rootPos, getForOptimismValue(bestThread->rootMoves[0].score)) && LD.is_enabled() && !LD.is_paused())
   {
       //Perform Q-learning if enabled
       if(LD.learning_mode() == LearningMode::Self)
@@ -629,7 +628,7 @@ void Thread::search() {
 	                  && multiPV == 1
 	                  && (bestValue <= alpha || bestValue >= beta)
 	                  && Time.elapsed() > 3000)
-	                  sync_cout << UCI::pv(rootPos, rootDepth, alpha, beta) << sync_endl;
+	                  sync_cout << UCI::pv(rootPos, rootDepth) << sync_endl;
 	
 	              // In case of failing low/high increase aspiration window and
 	              // re-search, otherwise exit the loop.
@@ -660,7 +659,7 @@ void Thread::search() {
 	
 	          if (    mainThread
 	              && (Threads.stop || pvIdx + 1 == multiPV || Time.elapsed() > 3000))
-	              sync_cout << UCI::pv(rootPos, rootDepth, alpha, beta) << sync_endl;
+	              sync_cout << UCI::pv(rootPos, rootDepth) << sync_endl;
 	      }
 	
 	      if (!Threads.stop)
@@ -1035,7 +1034,7 @@ namespace {
             if (learningMove->depth >= depth)
             {
                 expTTMove = learningMove->move;
-                expTTValue = (Value)(((float)(learningMove->score)) * WEIGHTED_EVAL);
+                expTTValue = getForOptimismValue(learningMove->score);
                 updatedLearning = true;
             }
 
@@ -1639,8 +1638,15 @@ moves_loop: // When in check, search starts here
           // Do full depth search when reduced LMR search fails high
           if (value > alpha && d < newDepth)
           {
+              // Adjust full depth search based on LMR results - if result
+              // was good enough search deeper, if it was bad enough search shallower
               const bool doDeeperSearch = value > (alpha + 64 + 11 * (newDepth - d));
-              value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
+              const bool doShallowerSearch = value < bestValue + newDepth;
+			  newDepth += doDeeperSearch - doShallowerSearch;
+
+              if (newDepth > d)
+                  value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
+
               int bonus = value > alpha ?  stat_bonus(newDepth)
                                         : -stat_bonus(newDepth);
 
@@ -1656,6 +1662,7 @@ moves_loop: // When in check, search starts here
       {
               value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
       }
+
       // For PV nodes only, do a full PV search on the first move or after a fail
       // high (in the latter case search only if value < beta), otherwise let the
       // parent node fail low with value <= alpha and try another move.
@@ -1663,6 +1670,7 @@ moves_loop: // When in check, search starts here
       {
           (ss+1)->pv = pv;
           (ss+1)->pv[0] = MOVE_NONE;
+
           value = -search<PV>(pos, ss+1, -beta, -alpha,
                               std::min(maxNextDepth, newDepth), false);
       }
@@ -1691,6 +1699,8 @@ moves_loop: // When in check, search starts here
           {
               rm.score = value;
               rm.selDepth = thisThread->selDepth;
+              rm.scoreLowerbound = value >= beta;
+              rm.scoreUpperbound = value <= alpha;
               rm.pv.resize(1);
 
               assert((ss+1)->pv);
@@ -1744,8 +1754,6 @@ moves_loop: // When in check, search starts here
               }
           }
       }
-      else
-         ss->cutoffCnt = 0;
 
 
       // If the move is worse than some previously searched move, remember it to update its stats later
@@ -1999,12 +2007,11 @@ moves_loop: // When in check, search starts here
           && (*contHist[1])[pos.moved_piece(move)][to_sq(move)] < 0)
           continue;
 
-      // movecount pruning for quiet check evasions
+      // We prune after 2nd quiet check evasion where being 'in check' is implicitly checked through the counter
+      // and being a 'quiet' apart from being a tt move is assumed after an increment because captures are pushed ahead.
       if (   bestValue > VALUE_TB_LOSS_IN_MAX_PLY
-          && quietCheckEvasions > 1
-          && !capture
-          && ss->inCheck)
-          continue;
+          && quietCheckEvasions > 1)
+          break;
 
       quietCheckEvasions += !capture && ss->inCheck;
 
@@ -2036,7 +2043,7 @@ moves_loop: // When in check, search starts here
     }
     //from Sugar
     if (openingVariety && (bestValue + (openingVariety * PawnValueEg / 100) >= 0 ) && (pos.count<PAWN>() > 12))
-	  bestValue += rand() % (openingVariety + 1);
+	  bestValue += thisThread->nodes % (openingVariety + 1);
     //end from Sugar
     // All legal moves have been searched. A special case: if we're in check
     // and no legal moves were found, it is checkmate.
@@ -2370,7 +2377,7 @@ void MainThread::check_time() {
 /// UCI::pv() formats PV information according to the UCI protocol. UCI requires
 /// that all (if any) unsearched PV lines are sent using a previous search score.
 
-string UCI::pv(const Position& pos, Depth depth, Value alpha, Value beta) {
+string UCI::pv(const Position& pos, Depth depth) {
 
   std::stringstream ss;
   TimePoint elapsed = Time.elapsed() + 1;
@@ -2408,8 +2415,8 @@ string UCI::pv(const Position& pos, Depth depth, Value alpha, Value beta) {
       if (Options["UCI_ShowWDL"])
           ss << UCI::wdl(v, pos.game_ply());
 
-      if (!tb && i == pvIdx)
-          ss << (v >= beta ? " lowerbound" : v <= alpha ? " upperbound" : "");
+      if (i == pvIdx && !tb && updated) // tablebase- and previous-scores are exact
+         ss << (rootMoves[i].scoreLowerbound ? " lowerbound" : (rootMoves[i].scoreUpperbound ? " upperbound" : ""));
 
       ss << " nodes "    << nodesSearched
          << " nps "      << nodesSearched * 1000 / elapsed

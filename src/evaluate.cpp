@@ -159,7 +159,7 @@ namespace Trace {
 
   Score scores[TERM_NB][COLOR_NB];
 
-  double to_cp(Value v) { return double(v) / PawnValueEg; }
+  double to_cp(Value v) { return double(v) / UCI::NormalizeToPawnValue; }
 
   void add(int idx, Color c, Score s) {
     scores[idx][c] = s;
@@ -1078,10 +1078,11 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
 
       // Return hybrid NNUE complexity to caller
       if (complexity)
+	  {
           *complexity = nnueComplexity;
-	  
-	  Value noOptimismValue= (nnue * scale) / 1024;
-      optimism = (abs(noOptimismValue) <= 35 * PawnValueEg/100) ? (Value)(0) : (optimism * (269 + nnueComplexity) / 256);
+	  }
+	  Value noOptimismValue= getForOptimismValue((nnue * scale) / 1024);
+	  optimism = (abs(noOptimismValue) < 15 * PawnValueEg / 100) ? (Value)(0) : (optimism * (269 + nnueComplexity) / 256);	  
       v = (nnue * scale + optimism * (scale - 754)) / 1024;
   }
 
