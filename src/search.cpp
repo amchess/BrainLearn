@@ -1308,7 +1308,7 @@ namespace {
     {
         assert(probCutBeta < VALUE_INFINITE);
 
-        MovePicker mp(pos, ttMove, probCutBeta - ss->staticEval, depth - 3, &captureHistory);
+        MovePicker mp(pos, ttMove, probCutBeta - ss->staticEval, &captureHistory);
 
         while ((move = mp.next_move()) != MOVE_NONE)
             if (move != excludedMove && pos.legal(move))
@@ -1336,7 +1336,6 @@ namespace {
                 {
                     // Save ProbCut data into transposition table
                     tte->save(posKey, value_to_tt(value, ss->ply), ss->ttPv, BOUND_LOWER, depth - 3, move, ss->staticEval);
-
                     return value;
                 }
             }
@@ -1371,6 +1370,7 @@ moves_loop: // When in check, search starts here
         && abs(beta) <= VALUE_KNOWN_WIN
        )
         return probCutBeta;
+
 
     const PieceToHistory* contHist[] = { (ss-1)->continuationHistory, (ss-2)->continuationHistory,
                                           nullptr                   , (ss-4)->continuationHistory,
@@ -1610,13 +1610,13 @@ moves_loop: // When in check, search starts here
           if (singularQuietLMR)
               r--;
 
-          // Dicrease reduction if we move a threatened piece (~1 Elo)
+          // Decrease reduction if we move a threatened piece (~1 Elo)
           if (   depth > 9
               && (mp.threatenedPieces & from_sq(move)))
               r--;
 
           // Increase reduction if next ply has a lot of fail high
-          if ((ss+1)->cutoffCnt > 3 && !PvNode)
+          if ((ss+1)->cutoffCnt > 3)
               r++;
 
           ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
