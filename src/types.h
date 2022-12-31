@@ -189,13 +189,22 @@ enum Value : int {
   VALUE_MATE_IN_MAX_PLY  =  VALUE_MATE - MAX_PLY,
   VALUE_MATED_IN_MAX_PLY = -VALUE_MATE_IN_MAX_PLY,
 
+  // In the code, we make the assumption that these values
+  // are such that non_pawn_material() can be used to uniquely
+  // identify the material on the board.
   PawnValueMg   = 126,   PawnValueEg   = 208,
   KnightValueMg = 781,   KnightValueEg = 854,
   BishopValueMg = 825,   BishopValueEg = 915,
   RookValueMg   = 1276,  RookValueEg   = 1380,
   QueenValueMg  = 2538,  QueenValueEg  = 2682,
 
-  MidgameLimit  = 15258, EndgameLimit  = 3915
+  MidgameLimit  = 15258, EndgameLimit  = 3915,
+  // Normalizes the internal value as reported by evaluate or search
+  // to the UCI centipawn result used in output. This value is derived from
+  // the win_rate_model() such that Stockfish outputs an advantage of
+  // "100 centipawns" for a position if the engine has a 50% probability to win
+  // from this position in selfplay at fishtest LTC time control.
+  NormalizeToPawnValue = 361 // from official here
 };
 
 enum PieceType {
@@ -280,29 +289,7 @@ struct DirtyPiece {
   Square from[3];
   Square to[3];
 };
-inline Value getForOptimismValue(Value score) 
-{
-   Value outputValue = (Value)((float)(score) * 32 / 89);
 
-  if ((int)outputValue < -35 * PawnValueEg/ 100) {
-	  return (Value)((float)(score) * 52/ 89);
-  }
-  if (((int)outputValue >= -35 * PawnValueEg/ 100)
-		  && ((int)outputValue <= -15 * PawnValueEg/100)) {
-	  return (Value)((float)(score) * 42 / 89);
-  }
-  if (((int)outputValue < 15 * PawnValueEg/ 100)) {
-	  return (Value)((float)(score) * 32 / 89);
-  }
-  if (((int)outputValue >= 15 * PawnValueEg/ 100)
-		  && ((int)outputValue <= 35 * PawnValueEg/ 100)) {
-	  return (Value)((float)(score) * 42 / 89);
-  }
-  if ((int)outputValue > 35 * PawnValueEg/ 100) {
-	  return (Value)((float)(score) * 52 / 89);
-  }
-  return outputValue;
-}
 /// Score enum stores a middlegame and an endgame value in a single integer (enum).
 /// The least significant 16 bits are used to store the middlegame value and the
 /// upper 16 bits are used to store the endgame value. We have to take care to
