@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -70,7 +70,7 @@ namespace Stockfish {
 namespace {
 
 /// Version number or dev.
-const string version = "21";
+const string version = "21.1";
 
 /// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 /// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
