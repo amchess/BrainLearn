@@ -22,6 +22,7 @@
 #include <cstring> // For std::memset, std::memcmp
 #include <iomanip>
 #include <sstream>
+#include <string_view>
 
 #include "bitboard.h"
 #include "misc.h"
@@ -46,7 +47,7 @@ namespace Zobrist {
 
 namespace {
 
-const string PieceToChar(" PNBRQK  pnbrqk");
+constexpr std::string_view PieceToChar(" PNBRQK  pnbrqk");
 
 constexpr Piece Pieces[] = { W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
                              B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING };
@@ -96,7 +97,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
 
 // Marcel van Kervinck's cuckoo algorithm for fast detection of "upcoming repetition"
 // situations. Description of the algorithm in the following paper:
-// https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
+// http://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
 
 // First and second hash functions for indexing the cuckoo tables
 inline int H1(Key h) { return h & 0x1fff; }

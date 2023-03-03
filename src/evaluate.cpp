@@ -89,7 +89,7 @@ namespace Eval {
     vector<string> dirs = { "<internal>" , "" , CommandLine::binaryDirectory };
     #endif
 
-    for (string directory : dirs)
+    for (const string& directory : dirs)
         if (currentEvalFileName != eval_file)
         {
             if (directory != "<internal>")
@@ -159,24 +159,24 @@ namespace Trace {
 
   Score scores[TERM_NB][COLOR_NB];
 
-  double to_cp(Value v) { return double(v) / NormalizeToPawnValue; }
+  static double to_cp(Value v) { return double(v) / UCI::NormalizeToPawnValue; }
 
-  void add(int idx, Color c, Score s) {
+  static void add(int idx, Color c, Score s) {
     scores[idx][c] = s;
   }
 
-  void add(int idx, Score w, Score b = SCORE_ZERO) {
+  static void add(int idx, Score w, Score b = SCORE_ZERO) {
     scores[idx][WHITE] = w;
     scores[idx][BLACK] = b;
   }
 
-  std::ostream& operator<<(std::ostream& os, Score s) {
+  static std::ostream& operator<<(std::ostream& os, Score s) {
     os << std::setw(5) << to_cp(mg_value(s)) << " "
        << std::setw(5) << to_cp(eg_value(s));
     return os;
   }
 
-  std::ostream& operator<<(std::ostream& os, Term t) {
+  static std::ostream& operator<<(std::ostream& os, Term t) {
 
     if (t == MATERIAL || t == IMBALANCE || t == WINNABLE || t == TOTAL)
         os << " ----  ----"    << " | " << " ----  ----";
@@ -193,8 +193,8 @@ using namespace Trace;
 namespace {
 
   // Threshold for lazy and space evaluation
-  constexpr Value LazyThreshold1    =  Value(3631);
-  constexpr Value LazyThreshold2    =  Value(2084);
+  constexpr Value LazyThreshold1    =  Value(3622);
+  constexpr Value LazyThreshold2    =  Value(1962);
   constexpr Value SpaceThreshold    =  Value(11551);
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
@@ -388,10 +388,10 @@ namespace {
   template<Tracing T> template<Color Us, PieceType Pt>
   Score Evaluation<T>::pieces() {
 
-    constexpr Color     Them = ~Us;
-    constexpr Direction Down = -pawn_push(Us);
-    constexpr Bitboard OutpostRanks = (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB
-                                                   : Rank5BB | Rank4BB | Rank3BB);
+    constexpr Color Them = ~Us;
+    [[maybe_unused]] constexpr Direction Down = -pawn_push(Us);
+    [[maybe_unused]] constexpr Bitboard OutpostRanks = (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB
+                                                                    : Rank5BB | Rank4BB | Rank3BB);
     Bitboard b1 = pos.pieces(Us, Pt);
     Bitboard b, bb;
     Score score = SCORE_ZERO;
@@ -430,7 +430,7 @@ namespace {
         int mob = popcount(b & mobilityArea[Us]);
         mobility[Us] += MobilityBonus[Pt - 2][mob];
 
-        if (Pt == BISHOP || Pt == KNIGHT)
+        if constexpr (Pt == BISHOP || Pt == KNIGHT)
         {
             // Bonus if the piece is on an outpost square or can reach one
             // Bonus for knights (UncontestedOutpost) if few relevant targets
@@ -1063,7 +1063,7 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
   else
   {
       int nnueComplexity;
-      int scale = 1076 + 96 * pos.non_pawn_material() / 5120;
+      int scale = 1001 + 5 * pos.count<PAWN>() + 61 * pos.non_pawn_material() / 4096;
 
       Color stm = pos.side_to_move();
       Value optimism = pos.this_thread()->optimism[stm];
@@ -1072,8 +1072,7 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
 
       // Blend nnue complexity with (semi)classical complexity
       nnueComplexity = (  406 * nnueComplexity
-                        + 424 * abs(psq - nnue)
-                        + (optimism  > 0 ? int(optimism) * int(psq - nnue) : 0)
+                        + (424 + optimism) * abs(psq - nnue)
                         ) / 1024;
 
       // Return hybrid NNUE complexity to caller
