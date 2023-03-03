@@ -24,9 +24,10 @@
 #include <fstream>
 #include <iostream>
 #include <list>
-#include <sstream>
-#include <type_traits>
 #include <mutex>
+#include <sstream>
+#include <string_view>
+#include <type_traits>
 
 #include "../bitboard.h"
 #include "../movegen.h"
@@ -70,7 +71,7 @@ enum TBFlag { STM = 1, Mapped = 2, WinPlies = 4, LossPlies = 8, Wide = 16, Singl
 inline WDLScore operator-(WDLScore d) { return WDLScore(-int(d)); }
 inline Square operator^(Square s, int i) { return Square(int(s) ^ i); }
 
-const std::string PieceToChar = " PNBRQK  pnbrqk";
+constexpr std::string_view PieceToChar = " PNBRQK  pnbrqk";
 
 int MapPawns[SQUARE_NB];
 int MapB1H1H7[SQUARE_NB];
@@ -141,7 +142,7 @@ struct SparseEntry {
 
 static_assert(sizeof(SparseEntry) == 6, "SparseEntry must be 6 bytes");
 
-typedef uint16_t Sym; // Huffman symbol
+using Sym = uint16_t; // Huffman symbol
 
 struct LR {
     enum Side { Left, Right };
@@ -199,13 +200,10 @@ public:
         }
     }
 
-    // Memory map the file and check it. File should be already open and will be
-    // closed after mapping.
+    // Memory map the file and check it.
     uint8_t* map(void** baseAddress, uint64_t* mapping, TBType type) {
-
-        assert(is_open());
-
-        close(); // Need to re-open to get native file descriptor
+        if (is_open())
+            close(); // Need to re-open to get native file descriptor
 
 #ifndef _WIN32
         struct stat statbuf;
@@ -329,7 +327,7 @@ struct PairsData {
 // first access, when the corresponding file is memory mapped.
 template<TBType Type>
 struct TBTable {
-    typedef typename std::conditional<Type == WDL, WDLScore, int>::type Ret;
+    using Ret = typename std::conditional<Type == WDL, WDLScore, int>::type;
 
     static constexpr int Sides = Type == WDL ? 2 : 1;
 

@@ -104,8 +104,8 @@ constexpr bool Is64Bit = true;
 constexpr bool Is64Bit = false;
 #endif
 
-typedef uint64_t Key;
-typedef uint64_t Bitboard;
+using Key = uint64_t;
+using Bitboard = uint64_t;
 
 constexpr int MAX_MOVES = 256;
 constexpr int MAX_PLY   = 246;
@@ -138,7 +138,7 @@ enum Color {
   WHITE, BLACK, COLOR_NB = 2
 };
 
-constexpr Color Colors[2] = { WHITE, BLACK };
+constexpr Color Colors[2] = {WHITE, BLACK};
 
 enum CastlingRights {
   NO_CASTLING,
@@ -198,13 +198,7 @@ enum Value : int {
   RookValueMg   = 1276,  RookValueEg   = 1380,
   QueenValueMg  = 2538,  QueenValueEg  = 2682,
 
-  MidgameLimit  = 15258, EndgameLimit  = 3915,
-  // Normalizes the internal value as reported by evaluate or search
-  // to the UCI centipawn result used in output. This value is derived from
-  // the win_rate_model() such that Stockfish outputs an advantage of
-  // "100 centipawns" for a position if the engine has a 50% probability to win
-  // from this position in selfplay at fishtest LTC time control.
-  NormalizeToPawnValue = 361 // from official here
+  MidgameLimit  = 15258, EndgameLimit  = 3915
 };
 
 enum PieceType {
@@ -227,7 +221,7 @@ constexpr Value PieceValue[PHASE_NB][PIECE_NB] = {
     VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg, VALUE_ZERO, VALUE_ZERO }
 };
 
-typedef int Depth;
+using Depth = int;
 
 enum : int {
   DEPTH_QS_CHECKS     =  0,
