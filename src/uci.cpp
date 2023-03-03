@@ -22,6 +22,7 @@
 #include <sstream>
 #include <string>
 
+#include "benchmark.h"
 #include "evaluate.h"
 #include "movegen.h"
 #include "position.h"
@@ -35,8 +36,6 @@
 using namespace std;
 
 namespace Stockfish {
-
-vector<string> setup_bench(const Position&, istream&);
 
 namespace {
 
@@ -176,7 +175,7 @@ namespace {
     uint64_t num, nodes = 0, cnt = 1;
 
     vector<string> list = setup_bench(pos, args);
-    num = count_if(list.begin(), list.end(), [](string s) { return s.find("go ") == 0 || s.find("eval") == 0; });
+    num = count_if(list.begin(), list.end(), [](const string& s) { return s.find("go ") == 0 || s.find("eval") == 0; });
 
     TimePoint elapsed = now();
 
@@ -203,11 +202,11 @@ namespace {
             //Kelly begin            
             if (LD.is_enabled())
             { 
-            	if (LD.learning_mode() == LearningMode::Self && !LD.is_paused())
+	            if( LD.learning_mode() == LearningMode::Self && !LD.is_paused())
 	            {
 	                putGameLineIntoLearningTable();
 	        	}
-            	setStartPoint();
+	            setStartPoint();
 			}
 			//Kelly end
 
@@ -235,11 +234,11 @@ namespace {
      // The coefficients of a third-order polynomial fit is based on the fishtest data
      // for two parameters that need to transform eval to the argument of a logistic
      // function.
-     constexpr double as[] = {  -0.58270499,    2.68512549,   15.24638015,  344.49745382};
-     constexpr double bs[] = {  -2.65734562,   15.96509799,  -20.69040836,   73.61029937 };
+     constexpr double as[] = {   0.33677609,   -4.30175627,   33.08810557,  365.60223431};
+     constexpr double bs[] = {  -2.50471102,   14.23235405,  -14.33066859,   71.42705250 };
 
      // Enforce that NormalizeToPawnValue corresponds to a 50% win rate at ply 64
-     static_assert(NormalizeToPawnValue == int(as[0] + as[1] + as[2] + as[3]));
+     static_assert(UCI::NormalizeToPawnValue == int(as[0] + as[1] + as[2] + as[3]));
 
      double a = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
      double b = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
@@ -305,12 +304,12 @@ void UCI::loop(int argc, char* argv[]) {
           }
           //Kelly end
       }
-      // The GUI sends 'ponderhit' to tell us the user has played the expected move.
-      // So 'ponderhit' will be sent if we were told to ponder on the same move the
-      // user has played. We should continue searching but switch from pondering to
-      // normal search.
+      // The GUI sends 'ponderhit' to tell that the user has played the expected move.
+      // So, 'ponderhit' is sent if pondering was done on the same move that the user
+      // has played. The search should continue, but should also switch from pondering
+      // to the normal search.
       else if (token == "ponderhit")
-          Threads.main()->ponder = false; // Switch to normal search
+          Threads.main()->ponder = false; // Switch to the normal search
 
       else if (token == "uci")
           sync_cout << "id name " << engine_info(true)
@@ -383,8 +382,13 @@ string UCI::value(Value v) {
 
   stringstream ss;
 
-  if (abs(v) < VALUE_MATE_IN_MAX_PLY)
+  if (abs(v) < VALUE_TB_WIN_IN_MAX_PLY)
       ss << "cp " << v * 100 / NormalizeToPawnValue;
+  else if (abs(v) < VALUE_MATE_IN_MAX_PLY)
+  {
+      const int ply = VALUE_MATE_IN_MAX_PLY - 1 - std::abs(v);  // recompute ss->ply
+      ss << "cp " << (v > 0 ? 20000 - ply : -20000 + ply);
+  }
   else
       ss << "mate " << (v > 0 ? VALUE_MATE - v + 1 : -VALUE_MATE - v) / 2;
 

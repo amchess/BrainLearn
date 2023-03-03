@@ -70,13 +70,13 @@ public:
   Position rootPos;
   StateInfo rootState;
   Search::RootMoves rootMoves;
-  Depth rootDepth, completedDepth, previousDepth;
+  Depth rootDepth, completedDepth;
   Value rootDelta;
   CounterMoveHistory counterMoves;
   ButterflyHistory mainHistory;
   CapturePieceToHistory captureHistory;
   ContinuationHistory continuationHistory[2][2];
-  bool isMCTS;
+  bool isMCTS; //from montecarlo
 };
 
 
@@ -103,13 +103,13 @@ struct MainThread : public Thread {
 /// parking and, most importantly, launching a thread. All the access to threads
 /// is done through this class.
 
-struct ThreadPool : public std::vector<Thread*> {
+struct ThreadPool {
 
   void start_thinking(Position&, StateListPtr&, const Search::LimitsType&, bool = false);
   void clear();
   void set(size_t);
 
-  MainThread* main()        const { return static_cast<MainThread*>(front()); }
+  MainThread* main()        const { return static_cast<MainThread*>(threads.front()); }
   uint64_t nodes_searched() const { return accumulate(&Thread::nodes); }
   uint64_t tb_hits()        const { return accumulate(&Thread::tbHits); }
   Thread* get_best_thread() const;
@@ -118,13 +118,21 @@ struct ThreadPool : public std::vector<Thread*> {
 
   std::atomic_bool stop, increaseDepth;
 
+  auto cbegin() const noexcept { return threads.cbegin(); }
+  auto begin() noexcept { return threads.begin(); }
+  auto end() noexcept { return threads.end(); }
+  auto cend() const noexcept { return threads.cend(); }
+  auto size() const noexcept { return threads.size(); }
+  auto empty() const noexcept { return threads.empty(); }
+
 private:
   StateListPtr setupStates;
+  std::vector<Thread*> threads;
 
   uint64_t accumulate(std::atomic<uint64_t> Thread::* member) const {
 
     uint64_t sum = 0;
-    for (Thread* th : *this)
+    for (Thread* th : threads)
         sum += (th->*member).load(std::memory_order_relaxed);
     return sum;
   }
