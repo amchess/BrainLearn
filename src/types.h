@@ -138,7 +138,7 @@ enum Color {
   WHITE, BLACK, COLOR_NB = 2
 };
 
-constexpr Color Colors[2] = {WHITE, BLACK};
+constexpr Color Colors[2] = {WHITE, BLACK};//kelly
 
 enum CastlingRights {
   NO_CASTLING,
@@ -419,6 +419,10 @@ inline Color color_of(Piece pc) {
   return Color(pc >> 3);
 }
 
+constexpr bool is_ok(Move m) {
+  return m != MOVE_NONE && m != MOVE_NULL;
+}
+
 constexpr bool is_ok(Square s) {
   return s >= SQ_A1 && s <= SQ_H8;
 }
@@ -448,10 +452,12 @@ constexpr Direction pawn_push(Color c) {
 }
 
 constexpr Square from_sq(Move m) {
+  assert(is_ok(m));
   return Square((m >> 6) & 0x3F);
 }
 
 constexpr Square to_sq(Move m) {
+  assert(is_ok(m));
   return Square(m & 0x3F);
 }
 
@@ -474,10 +480,6 @@ constexpr Move make_move(Square from, Square to) {
 template<MoveType T>
 constexpr Move make(Square from, Square to, PieceType pt = KNIGHT) {
   return Move(T + ((pt - KNIGHT) << 12) + (from << 6) + to);
-}
-
-constexpr bool is_ok(Move m) {
-  return from_sq(m) != to_sq(m); // Catch MOVE_NULL and MOVE_NONE
 }
 
 /// Based on a congruential pseudo random number generator
