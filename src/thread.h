@@ -56,14 +56,13 @@ public:
   void start_searching();
   void wait_for_search_finished();
   size_t id() const { return idx; }
-  bool is_mcts() const { return isMCTS; }
+  bool is_mcts() const { return isMCTS; } //mcts
 
   Pawns::Table pawnsTable;
   Material::Table materialTable;
   size_t pvIdx, pvLast;
   std::atomic<uint64_t> nodes, tbHits, bestMoveChanges;
   int selDepth, nmpMinPly;
-  Color nmpColor;
   Value bestValue, optimism[COLOR_NB];
 
   Position rootPos;
@@ -88,7 +87,6 @@ struct MainThread : public Thread {
   void search() override;
   void check_time();
 
-  double complexity;
   double previousTimeReduction;
   Value bestPreviousScore;
   Value bestPreviousAverageScore;

@@ -28,8 +28,8 @@
 #include "learn.h"
 #include "tt.h"
 #include "uci.h"
+#include "book/book.h"
 #include "syzygy/tbprobe.h"
-#include "polybook.h" //cerebellum
 
 using std::string;
 
@@ -49,6 +49,9 @@ static void on_use_NNUE(const Option&) { Eval::NNUE::init(); }
 static void on_eval_file(const Option&) { Eval::NNUE::init(); }
 static void on_readonly_learning(const Option& o) { LD.set_readonly(o); }
 static void on_self_qlearning(const Option& o) { LD.set_learning_mode((bool)o ? "Self" : "Standard"); }
+//book management begin
+static void on_book1(const Option& o) { Book::on_book(0, (string)o); }
+static void on_book2(const Option& o) { Book::on_book(1, (string)o); }
 //livebook begin
 #ifdef USE_LIVEBOOK
 static void on_livebook_url(const Option& o) { Search::setLiveBookURL(o); }
@@ -57,10 +60,7 @@ static void on_live_book_retry(const Option& o) { Search::set_livebook_retry(o);
 static void on_livebook_depth(const Option& o) { Search::set_livebook_depth(o); }
 #endif
 //livebook end
-//cerebellum+book begin
-static void on_book1_file(const Option& o) { polybook[0].init(o); }
-static void on_book2_file(const Option& o) { polybook[1].init(o); }
-//cerebellum+book end
+//book management end
 
 /// Our case insensitive less() function as required by UCI protocol
 bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const {
@@ -84,6 +84,7 @@ void init(OptionsMap& o) {
   o["MultiPV"]               << Option(1, 1, 500);
   o["Skill Level"]           << Option(20, 0, 20);
   o["Move Overhead"]         << Option(10, 0, 5000);
+  o["Minimum Thinking Time"] << Option(100, 0, 5000);
   o["Slow Mover"]            << Option(100, 10, 1000);
   o["nodestime"]             << Option(0, 0, 10000);
   o["UCI_Chess960"]          << Option(false);
@@ -104,6 +105,16 @@ void init(OptionsMap& o) {
   // The default must follow the format nn-[SHA256 first 12 digits].nnue
   // for the build process (profile-build and fishtest) to work.
   o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);
+  //Polyfish ctg and bin books begin	
+  o["CTG/BIN Book 1 File"]     << Option("<empty>", on_book1);
+  o["Book 1 Width"]            << Option(1, 1, 20);
+  o["Book 1 Depth"]            << Option(255, 1, 255);
+  o["(CTG) Book 1 Only Green"] << Option(true);
+  o["CTG/BIN Book 2 File"]     << Option("<empty>", on_book2);
+  o["Book 2 Width"]            << Option(1, 1, 20);
+  o["Book 2 Depth"]            << Option(255, 1, 255);
+  o["(CTG) Book 2 Only Green"] << Option(true);
+  //Polyfish ctg and bin books end
   //livebook begin
   #ifdef USE_LIVEBOOK
   o["Live Book"]             << Option(false);
@@ -115,17 +126,6 @@ void init(OptionsMap& o) {
   o["Live Book Depth"]       << Option(100, 1, 100, on_livebook_depth);
   #endif
   //livebook end
-  //cerebellum book begin
-  o["Book1"]                             << Option(false);
-  o["Book1 File"]                        << Option("<empty>", on_book1_file);
-  o["Book1 BestBookMove"]                << Option(true);
-  o["Book1 Depth"]                       << Option(100, 1, 350);
-						 
-  o["Book2"]                             << Option(false);
-  o["Book2 File"]                        << Option("<empty>", on_book2_file);
-  o["Book2 BestBookMove"]                << Option(true);
-  o["Book2 Depth"]                       << Option(100, 1, 350);
-  //cerebellum book end 
   o["Opening variety"]       << Option (0, 0, 40);
   o["Concurrent Experience"] << Option (false);
 }
@@ -175,13 +175,13 @@ Option::Option(double v, int minv, int maxv, OnChange f) : type("spin"), min(min
 Option::Option(const char* v, const char* cur, OnChange f) : type("combo"), min(0), max(0), on_change(f)
 { defaultValue = v; currentValue = cur; }
 
-Option::operator double() const {
+Option::operator int() const {
   assert(type == "check" || type == "spin");
-  return (type == "spin" ? stof(currentValue) : currentValue == "true");
+  return (type == "spin" ? std::stoi(currentValue) : currentValue == "true");
 }
 
 Option::operator std::string() const {
-  assert(type == "string" || type == "combo");//combo uci options
+  assert(type == "string");
   return currentValue;
 }
 
