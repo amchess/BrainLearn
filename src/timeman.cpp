@@ -36,6 +36,13 @@ TimeManagement Time; // Our global time management object
 
 void TimeManagement::init(Search::LimitsType& limits, Color us, int ply) {
 
+  // if we have no time, no need to initialize TM, except for the start time,
+  // which is used by movetime.
+  startTime = limits.startTime;
+  if (limits.time[us] == 0)
+      return;
+
+  TimePoint minThinkingTime = TimePoint(Options["Minimum Thinking Time"]);
   TimePoint moveOverhead    = TimePoint(Options["Move Overhead"]);
   TimePoint slowMover       = TimePoint(Options["Slow Mover"]);
   TimePoint npmsec          = TimePoint(Options["nodestime"]);
@@ -58,8 +65,6 @@ void TimeManagement::init(Search::LimitsType& limits, Color us, int ply) {
       limits.inc[us] *= npmsec;
       limits.npmsec = npmsec;
   }
-
-  startTime = limits.startTime;
 
   // Maximum move horizon of 50 moves
   int mtg = limits.movestogo ? std::min(limits.movestogo, 50) : 50;
@@ -95,7 +100,7 @@ void TimeManagement::init(Search::LimitsType& limits, Color us, int ply) {
   }
 
   // Never use more than 80% of the available time for this move
-  optimumTime = TimePoint(optScale * timeLeft);
+  optimumTime = std::max(minThinkingTime, TimePoint(optScale * timeLeft));
   maximumTime = TimePoint(std::min(0.8 * limits.time[us] - moveOverhead, maxScale * optimumTime));
 
   if (Options["Ponder"])
