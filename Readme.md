@@ -77,13 +77,117 @@ Only in multi mcts mode, for tree policy.
 _Integer, Default: 5, Min: 0, Max: 1000_
 Only in multi mcts mode, for Upper Confidence Bound.
 
-### Live Book section (thanks to Eman's author Khalid Omar for windows builds)
+### Book management section (thanks to Khalid Omar)
+The order is: bin->ctg->live book
 
-#### Live Book (checkbox)
+#### CTG/BIN Book 1 File
+The file name of the first book file which could be a polyglot (BIN) or Chessbase (CTG) book. To disable this book, use: ```<empty>```
+If the book (CTG or BIN) is in a different directory than the engine executable, then configure the full path of the book file, example:
+```C:\Path\To\My\Book.ctg``` or ```/home/username/path/to/book/bin```
+
+#### Book 1 Width
+The number of moves to consider from the book for the same position. To play best book move, set this option to ```1```. If a value ```n``` (greater than ```1```) is configured, the engine will pick **randomly** one of the top ```n``` moves available in the book for the given position
+
+#### Book 1 Depth
+The maximum number of moves to play from the book
+	
+#### (CTG) Book 1 Only Green
+This option is only used if the loaded book is a CTG book. When set to ```true```, the engine will only play Green moves from the book (if any). If no green moves found, then no book move is made
+This option has no effect or use if the loaded book is a Polyglot (BIN) book
+    
+#### CTG/BIN Book 2 File
+Same explaination as **CTG/BIN Book 1 File**, but for the second book
+
+#### Book 2 Width
+Same explaination as **BIN Book 1 Width**, but for the second book
+
+#### Book 2 Depth
+Same explaination as **BIN Book 1 Depth**, but for the second book
+
+#### (CTG) Book 2 Only Green
+Same explaination as **(CTG) Book 1 Only Green**, but for the second book
+
+#### UCI commands
+Polyfish supports all UCI commands supported by Stockfish. *Click [here](https://github.com/official-stockfish/Stockfish/blob/master/README.md#the-uci-protocol-and-available-options) to see the full list of supported Stockfish UCI commands*
+
+Polyfish also supports the following UCI commands
+
+  * ##### book
+    This command causes the engine to show available moves and associated information from the currently configured books
+	```
+	position startpos
+	poly
+
+	 +---+---+---+---+---+---+---+---+
+	 | r | n | b | q | k | b | n | r | 8
+	 +---+---+---+---+---+---+---+---+
+	 | p | p | p | p | p | p | p | p | 7
+	 +---+---+---+---+---+---+---+---+
+	 |   |   |   |   |   |   |   |   | 6
+	 +---+---+---+---+---+---+---+---+
+	 |   |   |   |   |   |   |   |   | 5
+	 +---+---+---+---+---+---+---+---+
+	 |   |   |   |   |   |   |   |   | 4
+	 +---+---+---+---+---+---+---+---+
+	 |   |   |   |   |   |   |   |   | 3
+	 +---+---+---+---+---+---+---+---+
+	 | P | P | P | P | P | P | P | P | 2
+	 +---+---+---+---+---+---+---+---+
+	 | R | N | B | Q | K | B | N | R | 1
+	 +---+---+---+---+---+---+---+---+
+	   a   b   c   d   e   f   g   h
+
+	Fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+	Key: 8F8F01D4562F59FB
+	Checkers:
+
+	Polyglot book 1: MyNarrowBook.bin
+	1 : e2e4 , count: 8822
+	2 : d2d4 , count: 6644
+
+	Polyglot book 2: MyWideBook.bin
+	1 : e2e4 , count: 9768
+	2 : d2d4 , count: 5347
+	3 : g1f3 , count: 1034
+	4 : c2c4 , count: 965
+	5 : b2b3 , count: 99
+	6 : f2f4 , count: 94
+	7 : g2g3 , count: 76
+	8 : b2b4 , count: 43
+	9 : e2e3 , count: 32
+	10: b1c3 , count: 32
+	11: d2d3 , count: 13
+	12: c2c3 , count: 12
+	13: a2a3 , count: 10
+	14: g2g4 , count: 9
+	15: h2h3 , count: 3
+	16: h2h4 , count: 3
+	17: a2a4 , count: 1
+	18: g1h3 , count: 1
+	19: b1a3 , count: 1
+	20: f2f3 , count: 1
+	```
+
+#### Note about CTG books:
+CTG book format specification is not available to the public from Chessbase. The code that reads and parses CTG books is based on the reverse engineered book specification published on [CTG Specifications](https://web.archive.org/web/20210129162445/https://rybkaforum.net/cgi-bin/rybkaforum/topic_show.pl?tid=2319) as well as the other resources mentioned earlier.
+
+The reverse engineered specs are good enough to proble the book for moves, but it does not provide the same functionality as Chessbase own products. The following is a list of known limitations of **Polyfish**'s CTG book implementation:
+- Does not support underpromotion, which means all promotion moves are assumed to be to a Queen
+- Does not support more than two Queens on the board
+- The logic that determines Green/Red moves is not 100% accurate which may cause the engine not to play certain Green moves because it cannot identify them.
+- Some move annotations and engine recommendations can be read.
+
+The move weight calculated by **Polyfish** (can be seen using the **book** command) is my own attempt to compensate for all the missing/unknown information about the CTG specification. Using the calculated weight, **Polyfish** can pick the best move for a given position in 99% of the times because it ustilizes existing move statistics such as number of wins, draws, and losses, as well as "known" annotations (!, !?, ?!, ??, OnlyMove, etc...) and recommendations (Green vs. Red) if available.
+
+Despite the fact that Polyfish can read and play from CTG Book, it is not going to be identical to Chessbase own products since it is based on the partial CTG specification available publicly. Use at your own risk!
+
+#### Live Book section (thanks to Eman's author Khalid Omar for windows builds)
+
+##### Live Book (checkbox)
 
 _Boolean, Default: False_ If activated, the engine uses the livebook as primary choice.
 
-#### Live Book URL
+##### Live Book URL
 The default is the online [chessdb](https://www.chessdb.cn/queryc_en/), a wonderful project by noobpwnftw (thanks to him!)
  
 [https://github.com/noobpwnftw/chessdb](https://github.com/noobpwnftw/chessdb)
@@ -92,23 +196,23 @@ The default is the online [chessdb](https://www.chessdb.cn/queryc_en/), a wonder
 
 The private application can also learn from this live db.
 
-#### Live Book Timeout
+##### Live Book Timeout
 
 _Default 5000, min 0, max 10000_ Only for bullet games, use a lower value, for example, 1500.
 
-#### Live Book Retry
+##### Live Book Retry
 
 _Default 3, min 1, max 100_ Max times the engine tries to contribute (if the corresponding option is activated: see below) to the live book. If 0, the engine doesn't use the livebook.
 
-#### Live Book Diversity
+##### Live Book Diversity
 
 _Boolean, Default: False_ If activated, the engine varies its play, reducing conversely its strength because already the live chessdb is very large.
 
-#### Live Book Contribute
+##### Live Book Contribute
 
 _Boolean, Default: False_ If activated, the engine sends a move, not in live chessdb, in its queue to be analysed. In this manner, we have a kind of learning cloud.
 
-#### Live Book Depth
+##### Live Book Depth
 
 _Default 100, min 1, max 100_ Depth of live book moves.
 
@@ -278,7 +382,10 @@ Currently, Stockfish has the following UCI options:
   * #### Move Overhead
     Assume a time delay of x ms due to network and GUI overheads. This is useful to
     avoid losses on time in those cases.
-
+  
+  * ####  Minimum Thinking Time (old Stockfish option restored)
+	Search for at least x ms per move.
+  
   * #### Slow Mover
     Lower values will make Stockfish take less time in games, higher values will
     make it think longer.

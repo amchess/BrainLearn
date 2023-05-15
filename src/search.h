@@ -31,6 +31,7 @@ class Position;
 
 namespace Search {
 
+
 /// Stack struct keeps track of the information we need to remember from nodes
 /// shallower and deeper in the tree during the search. Each search thread has
 /// its own array of Stack objects, indexed by the current ply.
@@ -127,4 +128,5 @@ size_t cURL_WriteFunc(void *contents, size_t size, size_t nmemb, std::string *s)
 //from Montecarlo end
 Value static_value(Position &pos, Search::Stack *ss);
 } // namespace Stockfish
+
 #endif // #ifndef SEARCH_H_INCLUDED
