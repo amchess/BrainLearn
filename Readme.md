@@ -12,7 +12,7 @@ This distribution of BrainLearn consists of the following files:
 
 ## UCI parameters
 
-BrainLearn hash the same options as BrainFish, but it implements a persisted learning algorithm, managing a file named experience.bin.
+BrainLearn hash the same options as BrainFish, but it implements a persisted learning algorithm, managing a file named experience.exp.
 
 It is a collection of one or more positions stored with the following format (similar to in memory Stockfish Transposition Table):
 
@@ -26,18 +26,20 @@ This file is loaded in an hashtable at the engine load and updated each time the
 When BrainLearn starts a new game or when we have max 8 pieces on the chessboard, the learning is activated and the hash table updated each time the engine has a best score
 at a depth >= 4 PLIES, according to Stockfish aspiration window.
 
-At the engine loading, there is an automatic merge to experience.bin files, if we put the other ones, based on the following convention:
+At the engine loading, there is an automatic merge to experience.exp files, if we put the other ones, based on the following convention:
 
-&lt;fileType&gt;&lt;qualityIndex&gt;.bin
+&lt;fileType&gt;&lt;qualityIndex&gt;.exp
 
 where
 
-- _fileType=&quot;experience&quot;/&quot;bin&quot;_
+- _fileType=experience_
 - _qualityIndex_ , an integer, incrementally from 0 on based on the file&#39;s quality assigned by the user (0 best quality and so on)
 
 N.B.
 
-Because of disk access, to be effective, the learning must be made at no bullet time controls (less than 5 minutes/game).
+Because of disk access, less time the engine can think, less effective is the learning.
+
+Old versions had this experience file with a .bin extension, but now we added the bin book format support, so the extension is changed in .exp. So, old files can simply be renamed by changing this extension.
 
 #### Contempt
 The default value is 0 and keep it for analysis purpose. For game playing, you can use the default stockfish value 24
@@ -226,8 +228,8 @@ Higher variety -> more probable loss of ELO
 
 _Boolean, Default: False_ 
 Set this option to true when running under CuteChess and you experiences problems with concurrency > 1
-When this option is true, the saved experience file name will be modified to something like experience-64a4c665c57504a4.bin
-(64a4c665c57504a4 is random). Each concurrent instance of BrainLearn will have its own experience file name, however, all the concurrent instances will read "experience.bin" at start up.
+When this option is true, the saved experience file name will be modified to something like experience-64a4c665c57504a4.exp
+(64a4c665c57504a4 is random). Each concurrent instance of BrainLearn will have its own experience file name, however, all the concurrent instances will read "experience.exp" at start up.
 
 ## pgn_to_bl_converter
 
