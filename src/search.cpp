@@ -403,29 +403,31 @@ void MainThread::search() {
   bestPreviousAverageScore = bestThread->rootMoves[0].averageScore;
 
   // kelly begin
-  if (bestThread->completedDepth > 4 && LD.is_enabled() && !LD.is_paused()) // from Khalid
+  if (!bookMove)
   {
-
-        PersistedLearningMove plm;
-        plm.key = rootPos.key();
-        plm.learningMove.depth = bestThread->completedDepth;
-        plm.learningMove.move = bestThread->rootMoves[0].pv[0];
-        plm.learningMove.score = bestThread->rootMoves[0].score;
-        if (LD.learning_mode() == LearningMode::Self)
-        {
-            const LearningMove *existingMove = LD.probe_move(plm.key, plm.learningMove.move);
-            if (existingMove)
-                plm.learningMove.score = existingMove->score;
-            gameLine.push_back(plm);
-        }
-        else
-        {
-            LD.add_new_learning(plm.key, plm.learningMove);
-        }
-  }
-  if (!enabledLearningProbe)
-  {
-      useLearning = false;
+      if (bestThread->completedDepth > 4 && LD.is_enabled() && !LD.is_paused()) // from Khalid
+      {
+          PersistedLearningMove plm;
+          plm.key = rootPos.key();
+          plm.learningMove.depth = bestThread->completedDepth;
+          plm.learningMove.move = bestThread->rootMoves[0].pv[0];
+          plm.learningMove.score = bestThread->rootMoves[0].score;
+          if (LD.learning_mode() == LearningMode::Self)
+          {
+              const LearningMove* existingMove = LD.probe_move(plm.key, plm.learningMove.move);
+              if (existingMove)
+                  plm.learningMove.score = existingMove->score;
+              gameLine.push_back(plm);
+          }
+          else
+          {
+              LD.add_new_learning(plm.key, plm.learningMove);
+          }
+      }
+      if (!enabledLearningProbe)
+      {
+          useLearning = false;
+      }
   }
   // Kelly end
 
@@ -442,21 +444,24 @@ void MainThread::search() {
 
   // from Khalid begin
   // Save learning data if game is already decided
-
-  if (Utility::is_game_decided(rootPos, (bestThread->rootMoves[0].score)) 
-  && LD.is_enabled() && !LD.is_paused())
+  if (!bookMove)
   {
-    // Perform Q-learning if enabled
-    if (LD.learning_mode() == LearningMode::Self)
-      putGameLineIntoLearningTable();
-	// Save to learning file
-	if (!LD.is_readonly())
-	{
-    	LD.persist();
-	}
-	// Stop learning until we receive *ucinewgame* command
-	LD.pause();
+      if (Utility::is_game_decided(rootPos, (bestThread->rootMoves[0].score))
+          && LD.is_enabled() && !LD.is_paused())
+      {
+          // Perform Q-learning if enabled
+          if (LD.learning_mode() == LearningMode::Self)
+              putGameLineIntoLearningTable();
+          // Save to learning file
+          if (!LD.is_readonly())
+          {
+              LD.persist();
+          }
+          // Stop learning until we receive *ucinewgame* command
+          LD.pause();
+      }
   }
+
   // from Khalid end
 // livebook begin
 #ifdef USE_LIVEBOOK
@@ -1066,9 +1071,9 @@ namespace {
     }
     else
     {
-        //Kelly begin
-        if (!(expTTHit) || !(updatedLearning))
-        {
+	  //Kelly begin
+	  if (!(expTTHit) || !(updatedLearning))
+	  {
 			ss->staticEval = eval = evaluate(pos);
 			
         // Save static evaluation into transposition table
@@ -1141,7 +1146,7 @@ namespace {
         && (ss-1)->statScore < 17329
         &&  eval >= beta
         &&  eval >= ss->staticEval
-        &&  ss->staticEval >= beta - 21 * depth - improvement * 99 / 1300 + 258
+        &&  ss->staticEval >= beta - 21 * depth - improvement / 13 + 258
         && !excludedMove
         &&  pos.non_pawn_material(us)
         && (ss->ply >= thisThread->nmpMinPly))
@@ -1163,10 +1168,9 @@ namespace {
         if (nullValue >= beta)
         {
             // Do not return unproven mate or TB scores
-            if (nullValue >= VALUE_TB_WIN_IN_MAX_PLY)
-                nullValue = beta;
+            nullValue = std::min(nullValue, VALUE_TB_WIN_IN_MAX_PLY-1);
 
-            if (thisThread->nmpMinPly || (abs(beta) < VALUE_KNOWN_WIN && depth < 14))
+            if (thisThread->nmpMinPly || depth < 14)
                 return nullValue;
 
             assert(!thisThread->nmpMinPly); // Recursive verification is not allowed
@@ -1353,9 +1357,28 @@ moves_loop: // When in check, search starts here
                    + captureHistory[movedPiece][to_sq(move)][type_of(pos.piece_on(to_sq(move)))] / 7 < alpha)
                   continue;
 
+              Bitboard occupied;
               // SEE based pruning (~11 Elo)
-              if (!pos.see_ge(move, Value(-205) * depth))
-                      continue;
+              if (!pos.see_ge(move, occupied, Value(-205) * depth))
+              {
+                 if (depth < 2 - capture)
+                    continue;
+                 // Don't prune the move if opponent Queen/Rook is under discovered attack after the exchanges
+                 // Don't prune the move if opponent King is under discovered attack after or during the exchanges
+                 Bitboard leftEnemies = (pos.pieces(~us, KING, QUEEN, ROOK)) & occupied;
+                 Bitboard attacks = 0;
+                 occupied |= to_sq(move);
+                 while (leftEnemies && !attacks)
+                 {
+                      Square sq = pop_lsb(leftEnemies);
+                      attacks |= pos.attackers_to(sq, occupied) & pos.pieces(us) & occupied;
+                      // don't consider pieces which were already threatened/hanging before SEE exchanges
+                      if (attacks && (sq != pos.square<KING>(~us) && (pos.attackers_to(sq, pos.pieces()) & pos.pieces(us))))
+                         attacks = 0;
+                 }
+                 if (!attacks)
+                    continue;
+              }
           }
           else
           {
@@ -1805,10 +1828,7 @@ moves_loop: // When in check, search starts here
 
     // Step 4. Static evaluation of the position
     if (ss->inCheck)
-    {
-        ss->staticEval = VALUE_NONE;
         bestValue = futilityBase = -VALUE_INFINITE;
-    }
     else
     {
         if (ss->ttHit)
@@ -1824,9 +1844,8 @@ moves_loop: // When in check, search starts here
         }
         else
             // In case of null move search use previous static eval with a different sign
-            ss->staticEval = bestValue =
-            (ss-1)->currentMove != MOVE_NULL ? evaluate(pos)
-                                             : -(ss-1)->staticEval;
+            ss->staticEval = bestValue = (ss-1)->currentMove != MOVE_NULL ? evaluate(pos)
+                                                                          : -(ss-1)->staticEval;
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
@@ -1865,97 +1884,98 @@ moves_loop: // When in check, search starts here
     // or a beta cutoff occurs.
     while ((move = mp.next_move()) != MOVE_NONE)
     {
-      assert(is_ok(move));
+        assert(is_ok(move));
 
-      // Check for legality
-      if (!pos.legal(move))
-          continue;
+        // Check for legality
+        if (!pos.legal(move))
+            continue;
 
-      givesCheck = pos.gives_check(move);
-      capture = pos.capture_stage(move);
+        givesCheck = pos.gives_check(move);
+        capture = pos.capture_stage(move);
 
-      moveCount++;
+        moveCount++;
 
-    // Step 6. Pruning.
-    if (bestValue > VALUE_TB_LOSS_IN_MAX_PLY)
-    {
-      // Futility pruning and moveCount pruning (~10 Elo)
-      if (   !givesCheck
-          &&  to_sq(move) != prevSq
-          &&  futilityBase > -VALUE_KNOWN_WIN
-          &&  type_of(move) != PROMOTION)
-      {
-          if (moveCount > 2)
-              continue;
+        // Step 6. Pruning.
+        if (bestValue > VALUE_TB_LOSS_IN_MAX_PLY)
+        {
+            // Futility pruning and moveCount pruning (~10 Elo)
+            if (   !givesCheck
+                &&  to_sq(move) != prevSq
+                &&  futilityBase > -VALUE_KNOWN_WIN
+                &&  type_of(move) != PROMOTION)
+            {
+                if (moveCount > 2)
+                    continue;
 
-          futilityValue = futilityBase + PieceValue[EG][pos.piece_on(to_sq(move))];
+                futilityValue = futilityBase + PieceValue[EG][pos.piece_on(to_sq(move))];
 
-          if (futilityValue <= alpha)
-          {
-              bestValue = std::max(bestValue, futilityValue);
-              continue;
-          }
+                if (futilityValue <= alpha)
+                {
+                    bestValue = std::max(bestValue, futilityValue);
+                    continue;
+                }
 
-          if (futilityBase <= alpha && !pos.see_ge(move, VALUE_ZERO + 1))
-          {
-              bestValue = std::max(bestValue, futilityBase);
-              continue;
-          }
-      }
+                if (futilityBase <= alpha && !pos.see_ge(move, VALUE_ZERO + 1))
+                {
+                    bestValue = std::max(bestValue, futilityBase);
+                    continue;
+                }
+            }
 
-      // We prune after 2nd quiet check evasion where being 'in check' is implicitly checked through the counter
-      // and being a 'quiet' apart from being a tt move is assumed after an increment because captures are pushed ahead.
-      if (quietCheckEvasions > 1)
-          break;
+            // We prune after the second quiet check evasion move, where being 'in check' is
+            // implicitly checked through the counter, and being a 'quiet move' apart from
+            // being a tt move is assumed after an increment because captures are pushed ahead.
+            if (quietCheckEvasions > 1)
+                break;
 
-      // Continuation history based pruning (~3 Elo)
-      if (   !capture
-          && (*contHist[0])[pos.moved_piece(move)][to_sq(move)] < 0
-          && (*contHist[1])[pos.moved_piece(move)][to_sq(move)] < 0)
-          continue;
+            // Continuation history based pruning (~3 Elo)
+            if (   !capture
+                && (*contHist[0])[pos.moved_piece(move)][to_sq(move)] < 0
+                && (*contHist[1])[pos.moved_piece(move)][to_sq(move)] < 0)
+                continue;
 
-      // Do not search moves with bad enough SEE values (~5 Elo)
-      if (!pos.see_ge(move, Value(-95)))
-          continue;
-    }
+            // Do not search moves with bad enough SEE values (~5 Elo)
+            if (!pos.see_ge(move, Value(-95)))
+                continue;
+        }
 
-      // Speculative prefetch as early as possible
-      prefetch(TT.first_entry(pos.key_after(move)));
+        // Speculative prefetch as early as possible
+        prefetch(TT.first_entry(pos.key_after(move)));
 
-      // Update the current move
-      ss->currentMove = move;
-      ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck]
-                                                                [capture]
-                                                                [pos.moved_piece(move)]
-                                                                [to_sq(move)];
+        // Update the current move
+        ss->currentMove = move;
+        ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck]
+                                                                  [capture]
+                                                                  [pos.moved_piece(move)]
+                                                                  [to_sq(move)];
 
-      quietCheckEvasions += !capture && ss->inCheck;
+        quietCheckEvasions += !capture && ss->inCheck;
 
-      // Step 7. Make and search the move
-      pos.do_move(move, st, givesCheck);
-      value = -qsearch<nodeType>(pos, ss+1, -beta, -alpha, depth - 1);
-      pos.undo_move(move);
+        // Step 7. Make and search the move
+        pos.do_move(move, st, givesCheck);
+        value = -qsearch<nodeType>(pos, ss+1, -beta, -alpha, depth - 1);
+        pos.undo_move(move);
 
-      assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
+        assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
 
-      // Step 8. Check for a new best move
-      if (value > bestValue)
-      {
-          bestValue = value;
+        // Step 8. Check for a new best move
+        if (value > bestValue)
+        {
+            bestValue = value;
 
-          if (value > alpha)
-          {
-              bestMove = move;
+            if (value > alpha)
+            {
+                bestMove = move;
 
-              if (PvNode) // Update pv even in fail-high case
-                  update_pv(ss->pv, move, (ss+1)->pv);
+                if (PvNode) // Update pv even in fail-high case
+                    update_pv(ss->pv, move, (ss+1)->pv);
 
-              if (PvNode && value < beta) // Update alpha here!
-                  alpha = value;
-              else
-                  break; // Fail high
-          }
-       }
+                if (PvNode && value < beta) // Update alpha here!
+                    alpha = value;
+                else
+                    break; // Fail high
+            }
+        }
     }
     // from Sugar
     if (openingVariety && bestValue + (openingVariety * UCI::NormalizeToPawnValue / 100) >= 0 && pos.count<PAWN>() > 12)
