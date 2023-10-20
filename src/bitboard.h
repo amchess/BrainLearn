@@ -19,18 +19,16 @@
 #ifndef BITBOARD_H_INCLUDED
 #define BITBOARD_H_INCLUDED
 
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
 #include <string>
 
 #include "types.h"
 
 namespace Stockfish {
-
-namespace Bitbases {
-
-void init();
-bool probe(Square wksq, Square wpsq, Square bksq, Color us);
-
-} // namespace Stockfish::Bitbases
 
 namespace Bitboards {
 
@@ -38,9 +36,6 @@ void init();
 std::string pretty(Bitboard b);
 
 } // namespace Stockfish::Bitboards
-
-constexpr Bitboard AllSquares = ~Bitboard(0);
-constexpr Bitboard DarkSquares = 0xAA55AA55AA55AA55ULL;
 
 constexpr Bitboard FileABB = 0x0101010101010101ULL;
 constexpr Bitboard FileBBB = FileABB << 1;
@@ -59,17 +54,6 @@ constexpr Bitboard Rank5BB = Rank1BB << (8 * 4);
 constexpr Bitboard Rank6BB = Rank1BB << (8 * 5);
 constexpr Bitboard Rank7BB = Rank1BB << (8 * 6);
 constexpr Bitboard Rank8BB = Rank1BB << (8 * 7);
-
-constexpr Bitboard QueenSide   = FileABB | FileBBB | FileCBB | FileDBB;
-constexpr Bitboard CenterFiles = FileCBB | FileDBB | FileEBB | FileFBB;
-constexpr Bitboard KingSide    = FileEBB | FileFBB | FileGBB | FileHBB;
-constexpr Bitboard Center      = (FileDBB | FileEBB) & (Rank4BB | Rank5BB);
-
-constexpr Bitboard KingFlank[FILE_NB] = {
-  QueenSide ^ FileDBB, QueenSide, QueenSide,
-  CenterFiles, CenterFiles,
-  KingSide, KingSide, KingSide ^ FileEBB
-};
 
 extern uint8_t PopCnt16[1 << 16];
 extern uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
@@ -131,11 +115,6 @@ constexpr bool more_than_one(Bitboard b) {
 }
 
 
-constexpr bool opposite_colors(Square s1, Square s2) {
-  return (s1 + rank_of(s1) + s2 + rank_of(s2)) & 1;
-}
-
-
 /// rank_bb() and file_bb() return a bitboard representing all the squares on
 /// the given file or rank.
 
@@ -184,25 +163,6 @@ inline Bitboard pawn_attacks_bb(Color c, Square s) {
   return PawnAttacks[c][s];
 }
 
-
-/// pawn_double_attacks_bb() returns the squares doubly attacked by pawns of the
-/// given color from the squares in the given bitboard.
-
-template<Color C>
-constexpr Bitboard pawn_double_attacks_bb(Bitboard b) {
-  return C == WHITE ? shift<NORTH_WEST>(b) & shift<NORTH_EAST>(b)
-                    : shift<SOUTH_WEST>(b) & shift<SOUTH_EAST>(b);
-}
-
-
-/// adjacent_files_bb() returns a bitboard representing all the squares on the
-/// adjacent files of a given square.
-
-constexpr Bitboard adjacent_files_bb(Square s) {
-  return shift<EAST>(file_bb(s)) | shift<WEST>(file_bb(s));
-}
-
-
 /// line_bb() returns a bitboard representing an entire line (from board edge
 /// to board edge) that intersects the two given squares. If the given squares
 /// are not on a same file/rank/diagonal, the function returns 0. For instance,
@@ -231,42 +191,6 @@ inline Bitboard between_bb(Square s1, Square s2) {
   return BetweenBB[s1][s2];
 }
 
-
-/// forward_ranks_bb() returns a bitboard representing the squares on the ranks in
-/// front of the given one, from the point of view of the given color. For instance,
-/// forward_ranks_bb(BLACK, SQ_D3) will return the 16 squares on ranks 1 and 2.
-
-constexpr Bitboard forward_ranks_bb(Color c, Square s) {
-  return c == WHITE ? ~Rank1BB << 8 * relative_rank(WHITE, s)
-                    : ~Rank8BB >> 8 * relative_rank(BLACK, s);
-}
-
-
-/// forward_file_bb() returns a bitboard representing all the squares along the
-/// line in front of the given one, from the point of view of the given color.
-
-constexpr Bitboard forward_file_bb(Color c, Square s) {
-  return forward_ranks_bb(c, s) & file_bb(s);
-}
-
-
-/// pawn_attack_span() returns a bitboard representing all the squares that can
-/// be attacked by a pawn of the given color when it moves along its file, starting
-/// from the given square.
-
-constexpr Bitboard pawn_attack_span(Color c, Square s) {
-  return forward_ranks_bb(c, s) & adjacent_files_bb(s);
-}
-
-
-/// passed_pawn_span() returns a bitboard which can be used to test if a pawn of
-/// the given color and on the given square is a passed pawn.
-
-constexpr Bitboard passed_pawn_span(Color c, Square s) {
-  return pawn_attack_span(c, s) | forward_file_bb(c, s);
-}
-
-
 /// aligned() returns true if the squares s1, s2 and s3 are aligned either on a
 /// straight or on a diagonal line.
 
@@ -284,10 +208,8 @@ template<> inline int distance<Rank>(Square x, Square y) { return std::abs(rank_
 template<> inline int distance<Square>(Square x, Square y) { return SquareDistance[x][y]; }
 
 inline int edge_distance(File f) { return std::min(f, File(FILE_H - f)); }
-inline int edge_distance(Rank r) { return std::min(r, Rank(RANK_8 - r)); }
 
-
-/// attacks_bb(Square) returns the pseudo attacks of the give piece type
+/// attacks_bb(Square) returns the pseudo attacks of the given piece type
 /// assuming an empty board.
 
 template<PieceType Pt>
@@ -340,9 +262,9 @@ inline int popcount(Bitboard b) {
   union { Bitboard bb; uint16_t u[4]; } v = { b };
   return PopCnt16[v.u[0]] + PopCnt16[v.u[1]] + PopCnt16[v.u[2]] + PopCnt16[v.u[3]];
 
-#elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#elif defined(_MSC_VER)
 
-  return (int)_mm_popcnt_u64(b);
+  return int(_mm_popcnt_u64(b));
 
 #else // Assumed gcc or compatible compiler
 
@@ -354,7 +276,7 @@ inline int popcount(Bitboard b) {
 
 /// lsb() and msb() return the least/most significant bit in a non-zero bitboard
 
-#if defined(__GNUC__)  // GCC, Clang, ICC
+#if defined(__GNUC__)  // GCC, Clang, ICX
 
 inline Square lsb(Bitboard b) {
   assert(b);
@@ -435,14 +357,6 @@ inline Square pop_lsb(Bitboard& b) {
   const Square s = lsb(b);
   b &= b - 1;
   return s;
-}
-
-
-/// frontmost_sq() returns the most advanced square for the given color,
-/// requires a non-zero bitboard.
-inline Square frontmost_sq(Color c, Bitboard b) {
-  assert(b);
-  return c == WHITE ? msb(b) : lsb(b);
 }
 
 } // namespace Stockfish

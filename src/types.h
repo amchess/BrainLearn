@@ -37,14 +37,10 @@
 ///               | only in 64-bit mode and requires hardware with pext support.
 
 #include <cassert>
-#include <cctype>
-#include <climits>
 #include <cstdint>
-#include <cstdlib>
-#include <algorithm>
 
 #if defined(_MSC_VER)
-// Disable some silly and noisy warning from MSVC compiler
+// Disable some silly and noisy warnings from MSVC compiler
 #pragma warning(disable: 4127) // Conditional expression is constant
 #pragma warning(disable: 4146) // Unary minus operator applied to unsigned type
 #pragma warning(disable: 4800) // Forcing value to bool 'true' or 'false'
@@ -52,11 +48,12 @@
 
 /// Predefined macros hell:
 ///
-/// __GNUC__           Compiler is gcc, Clang or Intel on Linux
-/// __INTEL_COMPILER   Compiler is Intel
-/// _MSC_VER           Compiler is MSVC or Intel on Windows
-/// _WIN32             Building on Windows (any)
-/// _WIN64             Building on Windows 64 bit
+/// __GNUC__                Compiler is GCC, Clang or ICX
+/// __clang__               Compiler is Clang or ICX
+/// __INTEL_LLVM_COMPILER   Compiler is ICX
+/// _MSC_VER                Compiler is MSVC
+/// _WIN32                  Building on Windows (any)
+/// _WIN64                  Building on Windows 64 bit
 
 #if defined(__GNUC__ ) && (__GNUC__ < 9 || (__GNUC__ == 9 && __GNUC_MINOR__ <= 2)) && defined(_WIN32) && !defined(__clang__)
 #define ALIGNAS_ON_STACK_VARIABLES_BROKEN
@@ -69,12 +66,12 @@
 #  define IS_64BIT
 #endif
 
-#if defined(USE_POPCNT) && (defined(__INTEL_COMPILER) || defined(_MSC_VER))
-#  include <nmmintrin.h> // Intel and Microsoft header for _mm_popcnt_u64()
+#if defined(USE_POPCNT) && defined(_MSC_VER)
+#  include <nmmintrin.h> // Microsoft header for _mm_popcnt_u64()
 #endif
 
-#if !defined(NO_PREFETCH) && (defined(__INTEL_COMPILER) || defined(_MSC_VER))
-#  include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
+#if !defined(NO_PREFETCH) && defined(_MSC_VER)
+#  include <xmmintrin.h> // Microsoft header for _mm_prefetch()
 #endif
 
 #if defined(USE_PEXT)
@@ -138,8 +135,6 @@ enum Color {
   WHITE, BLACK, COLOR_NB = 2
 };
 
-constexpr Color Colors[2] = {WHITE, BLACK};//kelly
-
 enum CastlingRights {
   NO_CASTLING,
   WHITE_OO,
@@ -156,19 +151,6 @@ enum CastlingRights {
   CASTLING_RIGHT_NB = 16
 };
 
-enum Phase {
-  PHASE_ENDGAME,
-  PHASE_MIDGAME = 128,
-  MG = 0, EG = 1, PHASE_NB = 2
-};
-
-enum ScaleFactor {
-  SCALE_FACTOR_DRAW    = 0,
-  SCALE_FACTOR_NORMAL  = 64,
-  SCALE_FACTOR_MAX     = 128,
-  SCALE_FACTOR_NONE    = 255
-};
-
 enum Bound {
   BOUND_NONE,
   BOUND_UPPER,
@@ -179,7 +161,7 @@ enum Bound {
 enum Value : int {
   VALUE_ZERO      = 0,
   VALUE_DRAW      = 0,
-  VALUE_KNOWN_WIN = 10000,
+  VALUE_KNOWN_WIN = 10000,//for mcts
   VALUE_MATE      = 32000,
   VALUE_INFINITE  = 32001,
   VALUE_NONE      = 32002,
@@ -192,13 +174,11 @@ enum Value : int {
   // In the code, we make the assumption that these values
   // are such that non_pawn_material() can be used to uniquely
   // identify the material on the board.
-  PawnValueMg   = 126,   PawnValueEg   = 208,
-  KnightValueMg = 781,   KnightValueEg = 854,
-  BishopValueMg = 825,   BishopValueEg = 915,
-  RookValueMg   = 1276,  RookValueEg   = 1380,
-  QueenValueMg  = 2538,  QueenValueEg  = 2682,
-
-  MidgameLimit  = 15258, EndgameLimit  = 3915
+  PawnValue   = 208,
+  KnightValue = 781,
+  BishopValue = 825,
+  RookValue   = 1276,
+  QueenValue  = 2538,
 };
 
 enum PieceType {
@@ -214,12 +194,8 @@ enum Piece {
   PIECE_NB = 16
 };
 
-constexpr Value PieceValue[PHASE_NB][PIECE_NB] = {
-  { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg, VALUE_ZERO, VALUE_ZERO,
-    VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg, VALUE_ZERO, VALUE_ZERO },
-  { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg, VALUE_ZERO, VALUE_ZERO,
-    VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg, VALUE_ZERO, VALUE_ZERO }
-};
+constexpr Value PieceValue[PIECE_NB] = { VALUE_ZERO, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, VALUE_ZERO, VALUE_ZERO,
+                                         VALUE_ZERO, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, VALUE_ZERO, VALUE_ZERO };
 
 using Depth = int;
 
@@ -284,29 +260,6 @@ struct DirtyPiece {
   Square to[3];
 };
 
-/// Score enum stores a middlegame and an endgame value in a single integer (enum).
-/// The least significant 16 bits are used to store the middlegame value and the
-/// upper 16 bits are used to store the endgame value. We have to take care to
-/// avoid left-shifting a signed int to avoid undefined behavior.
-enum Score : int { SCORE_ZERO };
-
-constexpr Score make_score(int mg, int eg) {
-  return Score((int)((unsigned int)eg << 16) + mg);
-}
-
-/// Extracting the signed lower and upper 16 bits is not so trivial because
-/// according to the standard a simple cast to short is implementation defined
-/// and so is a right shift of a signed integer.
-inline Value eg_value(Score s) {
-  union { uint16_t u; int16_t s; } eg = { uint16_t(unsigned(s + 0x8000) >> 16) };
-  return Value(eg.s);
-}
-
-inline Value mg_value(Score s) {
-  union { uint16_t u; int16_t s; } mg = { uint16_t(unsigned(s)) };
-  return Value(mg.s);
-}
-
 #define ENABLE_BASE_OPERATORS_ON(T)                                \
 constexpr T operator+(T d1, int d2) { return T(int(d1) + d2); }    \
 constexpr T operator-(T d1, int d2) { return T(int(d1) - d2); }    \
@@ -330,13 +283,10 @@ inline T& operator/=(T& d, int i) { return d = T(int(d) / i); }
 ENABLE_FULL_OPERATORS_ON(Value)
 ENABLE_FULL_OPERATORS_ON(Direction)
 
-ENABLE_INCR_OPERATORS_ON(Piece)
 ENABLE_INCR_OPERATORS_ON(PieceType)
 ENABLE_INCR_OPERATORS_ON(Square)
 ENABLE_INCR_OPERATORS_ON(File)
 ENABLE_INCR_OPERATORS_ON(Rank)
-
-ENABLE_BASE_OPERATORS_ON(Score)
 
 #undef ENABLE_FULL_OPERATORS_ON
 #undef ENABLE_INCR_OPERATORS_ON
@@ -347,32 +297,6 @@ constexpr Square operator+(Square s, Direction d) { return Square(int(s) + int(d
 constexpr Square operator-(Square s, Direction d) { return Square(int(s) - int(d)); }
 inline Square& operator+=(Square& s, Direction d) { return s = s + d; }
 inline Square& operator-=(Square& s, Direction d) { return s = s - d; }
-
-/// Only declared but not defined. We don't want to multiply two scores due to
-/// a very high risk of overflow. So user should explicitly convert to integer.
-Score operator*(Score, Score) = delete;
-
-/// Division of a Score must be handled separately for each term
-inline Score operator/(Score s, int i) {
-  return make_score(mg_value(s) / i, eg_value(s) / i);
-}
-
-/// Multiplication of a Score by an integer. We check for overflow in debug mode.
-inline Score operator*(Score s, int i) {
-
-  Score result = Score(int(s) * i);
-
-  assert(eg_value(result) == (i * eg_value(s)));
-  assert(mg_value(result) == (i * mg_value(s)));
-  assert((i == 0) || (result / i) == s);
-
-  return result;
-}
-
-/// Multiplication of a Score by a boolean
-inline Score operator*(Score s, bool b) {
-  return b ? s : SCORE_ZERO;
-}
 
 constexpr Color operator~(Color c) {
   return Color(c ^ BLACK); // Toggle color
@@ -482,7 +406,7 @@ constexpr Move make(Square from, Square to, PieceType pt = KNIGHT) {
   return Move(T + ((pt - KNIGHT) << 12) + (from << 6) + to);
 }
 
-/// Based on a congruential pseudo random number generator
+/// Based on a congruential pseudo-random number generator
 constexpr Key make_key(uint64_t seed) {
   return seed * 6364136223846793005ULL + 1442695040888963407ULL;
 }

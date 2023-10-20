@@ -19,15 +19,16 @@
 #ifndef MISC_H_INCLUDED
 #define MISC_H_INCLUDED
 
-#include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <iosfwd>
+#include <string>
+//BrainLearn specific begin
+#include <algorithm> 
 #include <functional>
 #include <mutex>
-#include <ostream>
-#include <string>
-#include <vector>
-#include <cstdint>
 #ifndef _MSC_VER
 #include <mm_malloc.h>
 #endif
@@ -44,8 +45,8 @@
 #endif
 #include <windows.h>
 #endif
-
 #include "types.h"
+//BrainLearn specific end
 
 #define stringify2(x) #x
 #define stringify(x) stringify2(x)
@@ -75,14 +76,6 @@ inline TimePoint now() {
   return std::chrono::duration_cast<std::chrono::milliseconds>
         (std::chrono::steady_clock::now().time_since_epoch()).count();
 }
-
-template<class Entry, int Size>
-struct HashTable {
-  Entry* operator[](Key key) { return &table[(uint32_t)key & (Size - 1)]; }
-
-private:
-  std::vector<Entry> table = std::vector<Entry>(Size); // Allocate on the heap
-};
 
 
 enum SyncCout { IO_LOCK, IO_UNLOCK };
@@ -118,11 +111,13 @@ public:
   void push_back(const T& value) { values_[size_++] = value; }
   const T* begin() const { return values_; }
   const T* end() const { return values_ + size_; }
+  const T& operator[](int index) const { return values_[index]; }
 
 private:
   T values_[MaxSize];
   std::size_t size_ = 0;
 };
+
 
 /// xorshift64star Pseudo-Random Number Generator
 /// This class is based on original code written and dedicated
@@ -163,13 +158,13 @@ public:
 inline uint64_t mul_hi64(uint64_t a, uint64_t b) {
 #if defined(__GNUC__) && defined(IS_64BIT)
     __extension__ using uint128 = unsigned __int128;
-    return ((uint128)a * (uint128)b) >> 64;
+    return (uint128(a) * uint128(b)) >> 64;
 #else
-    uint64_t aL = (uint32_t)a, aH = a >> 32;
-    uint64_t bL = (uint32_t)b, bH = b >> 32;
+    uint64_t aL = uint32_t(a), aH = a >> 32;
+    uint64_t bL = uint32_t(b), bH = b >> 32;
     uint64_t c1 = (aL * bL) >> 32;
     uint64_t c2 = aH * bL + c1;
-    uint64_t c3 = aL * bH + (uint32_t)c2;
+    uint64_t c3 = aL * bH + uint32_t(c2);
     return aH * bH + (c2 >> 32) + (c3 >> 32);
 #endif
 }

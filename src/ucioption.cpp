@@ -18,18 +18,25 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cctype>
+#include <cstddef>
+#include <iosfwd>
+#include <istream>
+#include <map>
 #include <ostream>
 #include <sstream>
+#include <string>
 
 #include "evaluate.h"
 #include "misc.h"
 #include "search.h"
-#include "thread.h"
-#include "learn.h"
-#include "tt.h"
-#include "uci.h"
-#include "book/book.h"
 #include "syzygy/tbprobe.h"
+#include "thread.h"
+#include "tt.h"
+#include "types.h"
+#include "uci.h"
+#include "learn.h" //Kelly
+#include "book/book.h" //Book management
 
 using std::string;
 
@@ -45,10 +52,11 @@ static void on_hash_size(const Option& o) { TT.resize(size_t(o)); }
 static void on_logger(const Option& o) { start_logger(o); }
 static void on_threads(const Option& o) { Threads.set(size_t(o)); }
 static void on_tb_path(const Option& o) { Tablebases::init(o); }
-static void on_use_NNUE(const Option&) { Eval::NNUE::init(); }
 static void on_eval_file(const Option&) { Eval::NNUE::init(); }
+//from Kelly begin
 static void on_readonly_learning(const Option& o) { LD.set_readonly(o); }
 static void on_self_qlearning(const Option& o) { LD.set_learning_mode((bool)o ? "Self" : "Standard"); }
+//from Kelly end
 //book management begin
 static void on_book1(const Option& o) { Book::on_book(0, (string)o); }
 static void on_book2(const Option& o) { Book::on_book(1, (string)o); }
@@ -95,15 +103,16 @@ void init(OptionsMap& o) {
   o["SyzygyProbeDepth"]      << Option(1, 1, 100);
   o["Syzygy50MoveRule"]      << Option(true);
   o["SyzygyProbeLimit"]      << Option(7, 0, 7);
+  //From Kelly begin
   o["Read only learning"]    << Option(false, on_readonly_learning);
   o["Self Q-learning"]       << Option(false, on_self_qlearning);
+  //From Kelly end
+  //From MCTS begin
   o["MCTS"]                  << Option(false);
   o["MCTSThreads"]           << Option(1, 1, 512);
   o["Multi Strategy"]        << Option(20, 0, 100);
   o["Multi MinVisits"]       << Option(5, 0, 1000);
-  o["Use NNUE"]              << Option(true, on_use_NNUE);
-  // The default must follow the format nn-[SHA256 first 12 digits].nnue
-  // for the build process (profile-build and fishtest) to work.
+  //From MCTS end
   o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);
   //Polyfish ctg and bin books begin	
   o["CTG/BIN Book 1 File"]     << Option("<empty>", on_book1);
