@@ -16,19 +16,19 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cstddef>
 #include <iostream>
 
 #include "bitboard.h"
-#include "endgame.h"
+#include "evaluate.h"
 #include "misc.h"
 #include "position.h"
-#include "psqt.h"
 #include "search.h"
-#include "syzygy/tbprobe.h"
 #include "thread.h"
-#include "tt.h"
-#include "learn.h"
+#include "tune.h"
+#include "types.h"
 #include "uci.h"
+#include "learn.h"
 #include "book/book.h"
 using namespace Stockfish;
 
@@ -41,11 +41,8 @@ int main(int argc, char* argv[]) {
   UCI::init(Options);
   Tune::init();
   LD.init();//Kelly
-  PSQT::init();
   Bitboards::init();
   Position::init();
-  Bitbases::init();
-  Endgames::init();
   Threads.set(size_t(Options["Threads"]));
   Search::clear(); // After threads are up
   Eval::NNUE::init();

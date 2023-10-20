@@ -21,16 +21,16 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <cstddef>
+#include <cstdint>
 #include <mutex>
-#include <thread>
 #include <vector>
 
-#include "material.h"
 #include "movepick.h"
-#include "pawns.h"
 #include "position.h"
 #include "search.h"
 #include "thread_win32_osx.h"
+#include "types.h"
 
 namespace Stockfish {
 
@@ -58,8 +58,6 @@ public:
   size_t id() const { return idx; }
   bool is_mcts() const { return isMCTS; } //mcts
 
-  Pawns::Table pawnsTable;
-  Material::Table materialTable;
   size_t pvIdx, pvLast;
   std::atomic<uint64_t> nodes, tbHits, bestMoveChanges;
   int selDepth, nmpMinPly;
@@ -70,6 +68,7 @@ public:
   Search::RootMoves rootMoves;
   Depth rootDepth, completedDepth;
   Value rootDelta;
+  Value rootSimpleEval;
   CounterMoveHistory counterMoves;
   ButterflyHistory mainHistory;
   CapturePieceToHistory captureHistory;

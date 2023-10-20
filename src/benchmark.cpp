@@ -18,18 +18,16 @@
 
 #include "benchmark.h"
 
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include <istream>
 #include <vector>
 
 #include "position.h"
 
-using namespace std;
-
 namespace {
 
-const vector<string> Defaults = {
+const std::vector<std::string> Defaults = {
   "setoption name UCI_Chess960 value false",
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
   "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
@@ -100,28 +98,26 @@ namespace Stockfish {
 /// setup_bench() builds a list of UCI commands to be run by bench. There
 /// are five parameters: TT size in MB, number of search threads that
 /// should be used, the limit value spent for each position, a file name
-/// where to look for positions in FEN format, the type of the limit:
-/// depth, perft, nodes and movetime (in millisecs), and evaluation type
-/// mixed (default), classical, NNUE.
+/// where to look for positions in FEN format, and the type of the limit:
+/// depth, perft, nodes and movetime (in milliseconds). Examples:
 ///
-/// bench -> search default positions up to depth 13
-/// bench 64 1 15 -> search default positions up to depth 15 (TT = 64MB)
-/// bench 64 4 5000 current movetime -> search current position with 4 threads for 5 sec
-/// bench 64 1 100000 default nodes -> search default positions for 100K nodes each
-/// bench 16 1 5 default perft -> run a perft 5 on default positions
+/// bench                            : search default positions up to depth 13
+/// bench 64 1 15                    : search default positions up to depth 15 (TT = 64MB)
+/// bench 64 1 100000 default nodes  : search default positions for 100K nodes each
+/// bench 64 4 5000 current movetime : search current position with 4 threads for 5 sec
+/// bench 16 1 5 blah perft          : run a perft 5 on positions in file "blah"
 
-vector<string> setup_bench(const Position& current, istream& is) {
+std::vector<std::string> setup_bench(const Position& current, std::istream& is) {
 
-  vector<string> fens, list;
-  string go, token;
+  std::vector<std::string> fens, list;
+  std::string go, token;
 
   // Assign default values to missing arguments
-  string ttSize    = (is >> token) ? token : "16";
-  string threads   = (is >> token) ? token : "1";
-  string limit     = (is >> token) ? token : "13";
-  string fenFile   = (is >> token) ? token : "default";
-  string limitType = (is >> token) ? token : "depth";
-  string evalType  = (is >> token) ? token : "mixed";
+  std::string ttSize    = (is >> token) ? token : "16";
+  std::string threads   = (is >> token) ? token : "1";
+  std::string limit     = (is >> token) ? token : "13";
+  std::string fenFile   = (is >> token) ? token : "default";
+  std::string limitType = (is >> token) ? token : "depth";
 
   go = limitType == "eval" ? "eval" : "go " + limitType + " " + limit;
 
@@ -133,12 +129,12 @@ vector<string> setup_bench(const Position& current, istream& is) {
 
   else
   {
-      string fen;
-      ifstream file(fenFile);
+      std::string fen;
+      std::ifstream file(fenFile);
 
       if (!file.is_open())
       {
-          cerr << "Unable to open file " << fenFile << endl;
+          std::cerr << "Unable to open file " << fenFile << std::endl;
           exit(EXIT_FAILURE);
       }
 
@@ -153,23 +149,14 @@ vector<string> setup_bench(const Position& current, istream& is) {
   list.emplace_back("setoption name Hash value " + ttSize);
   list.emplace_back("ucinewgame");
 
-  size_t posCounter = 0;
-
-  for (const string& fen : fens)
-      if (fen.find("setoption") != string::npos)
+  for (const std::string& fen : fens)
+      if (fen.find("setoption") != std::string::npos)
           list.emplace_back(fen);
       else
       {
-          if (evalType == "classical" || (evalType == "mixed" && posCounter % 2 == 0))
-              list.emplace_back("setoption name Use NNUE value false");
-          else if (evalType == "NNUE" || (evalType == "mixed" && posCounter % 2 != 0))
-              list.emplace_back("setoption name Use NNUE value true");
           list.emplace_back("position fen " + fen);
           list.emplace_back(go);
-          ++posCounter;
       }
-
-  list.emplace_back("setoption name Use NNUE value true");
 
   return list;
 }
