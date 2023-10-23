@@ -19,15 +19,15 @@
 #ifndef MISC_H_INCLUDED
 #define MISC_H_INCLUDED
 
-#include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <algorithm>
 #include <functional>
-#include <mutex>
+
 #include <ostream>
 #include <string>
-#include <vector>
-#include <cstdint>
+//BrainLearn specific begin
+#include <mutex>
 #ifndef _MSC_VER
 #include <mm_malloc.h>
 #endif
@@ -44,6 +44,10 @@
 #endif
 #include <windows.h>
 #endif
+//Brainlearn specific end
+#include <vector>
+#include <cstdint>
+
 
 #include "types.h"
 
@@ -123,6 +127,7 @@ private:
   T values_[MaxSize];
   std::size_t size_ = 0;
 };
+
 
 /// xorshift64star Pseudo-Random Number Generator
 /// This class is based on original code written and dedicated

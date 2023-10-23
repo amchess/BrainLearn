@@ -19,17 +19,16 @@
 #include <iostream>
 
 #include "bitboard.h"
-#include "endgame.h"
-#include "misc.h"
+#include "misc.h" //from Brainlearn
 #include "position.h"
 #include "psqt.h"
 #include "search.h"
 #include "syzygy/tbprobe.h"
 #include "thread.h"
 #include "tt.h"
-#include "learn.h"
 #include "uci.h"
-#include "book/book.h"
+#include "learn.h" //learning
+#include "book/book.h" //book
 using namespace Stockfish;
 
 int main(int argc, char* argv[]) {
@@ -44,8 +43,6 @@ int main(int argc, char* argv[]) {
   PSQT::init();
   Bitboards::init();
   Position::init();
-  Bitbases::init();
-  Endgames::init();
   Threads.set(size_t(Options["Threads"]));
   Search::clear(); // After threads are up
   Eval::NNUE::init();

@@ -30,12 +30,13 @@
 #include "thread.h"
 #include "timeman.h"
 #include "tt.h"
-#include "learn.h"
 #include "uci.h"
-#include "book/book.h"
 #include "syzygy/tbprobe.h"
 #include "nnue/evaluate_nnue.h"
-
+//From Brainlearn begin
+#include "learn.h"
+#include "book/book.h"
+//From Brainlearn end
 using namespace std;
 
 namespace Stockfish {

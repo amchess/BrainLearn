@@ -47,14 +47,15 @@ using fun8_t = bool(*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
-#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string_view>
 #include <vector>
+//from Brainlearn begin
+#include <functional>
 #include <stdarg.h>
-
+//from Brainlearn end
 #if defined(__linux__) && !defined(__ANDROID__)
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -67,7 +68,6 @@ using fun8_t = bool(*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES
 
 #include "misc.h"
 #include "thread.h"
-#include "syzygy/tbprobe.h"
 
 using namespace std;
 
