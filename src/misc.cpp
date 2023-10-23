@@ -282,7 +282,9 @@ std::string compiler_info() {
   #if defined(USE_MMX)
     compiler += " MMX";
   #endif
-  #if defined(USE_NEON)
+  #if defined(USE_NEON_DOTPROD)
+    compiler += " NEON_DOTPROD";
+  #elif defined(USE_NEON)
     compiler += " NEON";
   #endif
 
@@ -932,7 +934,7 @@ namespace Utility
     }        
     bool is_game_decided(const Position& pos, Value lastScore)
     {
-        static constexpr const Value DecidedGameEvalThreeshold = PawnValueEg * 5;
+        static constexpr const Value DecidedGameEvalThreeshold = PawnValue * 5;
         static constexpr const int DecidedGameMaxPly = 150;
         static constexpr const int DecidedGameMaxPieceCount = 5;
 
