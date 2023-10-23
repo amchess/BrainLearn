@@ -25,7 +25,7 @@
 #include <fstream>    // kelly
 #include "evaluate.h"
 #include "misc.h"
-#include "mcts/montecarlo.h" //Montecarlo
+
 #include "movegen.h"
 #include "movepick.h"
 #include "position.h"
@@ -35,6 +35,7 @@
 #include "tt.h"
 #include "learn.h"
 #include "uci.h"
+#include "mcts/montecarlo.h" //Montecarlo
 #include "book/book.h" //books management
 #include "syzygy/tbprobe.h"
 #include "nnue/evaluate_nnue.h"
@@ -260,7 +261,25 @@ void Search::clear() {
   Threads.clear();
   Tablebases::init(Options["SyzygyPath"]); // Free mapped files
 }
+//for mcts begin
+inline Value static_value(Position &pos, Stack *ss)
+{
+    // Check if MAX_PLY is reached
+    if (ss->ply >= MAX_PLY)
+        return VALUE_DRAW;
 
+    // Check for immediate draw
+    if (pos.is_draw(ss->ply) && !pos.checkers())
+        return VALUE_DRAW;
+
+    // Detect mate and stalimate situations
+    if (MoveList<LEGAL>(pos).size() == 0)
+        return pos.checkers() ? VALUE_MATE : VALUE_DRAW;
+
+    // Evaluate the position statically
+    return evaluate(pos);
+}
+//for mcts end
 
 /// MainThread::search() is started when the program receives the UCI 'go'
 /// command. It searches from the root position and outputs the "bestmove".
@@ -535,12 +554,46 @@ void Thread::search() {
 
   int searchAgainCounter = 0;
   // mcts begin
+  bool mcts = (bool)Options["MCTS"];
   bool maybeDraw = rootPos.rule50_count() >= 90 || rootPos.has_game_cycle(2);
-  mctsThreads = Options["MCTSThreads"];
-  if ((Options["MCTS"])&&((((mctsThreads==1)&&(idx == 1))||
-	 ((mctsThreads > 1)&& (idx<=(size_t)mctsThreads)&&(!mainThread)))
-	 && (!maybeDraw))
-	 )
+  bool doMCTS=false;
+
+  if(mcts)
+  {
+  	mctsThreads = Options["MCTSThreads"];
+  	mctsGoldDigger = Options["MCTSGoldDigger"];	
+    Value rootPosValue=(Value)(std::abs(int(static_value(rootPos, ss))));
+    switch(mctsGoldDigger)
+    {
+            case 1:
+                doMCTS=rootPosValue >=HIGH_MCTS;
+                break;
+            case 2:
+                doMCTS=rootPosValue >=HIGH_MIDDLE_MCTS;
+                break;
+            case 3:
+				doMCTS=rootPosValue >=MIDDLE_MCTS;
+                break;
+            case 4:
+				doMCTS=rootPosValue >=MIDDLE_LOW_MCTS;
+                break;
+            case 5:
+				doMCTS=rootPosValue >=LOW_MCTS;
+                break;                                    
+            case 6:
+				doMCTS=rootPosValue >=MIN_MCTS;
+                break;
+            default:
+                break;
+    }
+  }
+  if (
+                (!mainThread) && mcts && (((mctsThreads == 1) && (idx == 1)) || ((mctsThreads > 1) && (idx <= (size_t)mctsThreads) && (!mainThread))) 
+                &&
+                doMCTS
+                &&
+                (!maybeDraw)
+                && (!Utility::is_game_decided(rootPos, (Threads.main()->bestPreviousScore))))
   {
 	isMCTS = true;
     MonteCarlo *monteCarlo = new MonteCarlo(rootPos);

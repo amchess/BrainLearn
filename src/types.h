@@ -198,7 +198,15 @@ enum Value : int {
   RookValueMg   = 1276,  RookValueEg   = 1380,
   QueenValueMg  = 2538,  QueenValueEg  = 2682,
 
-  MidgameLimit  = 15258, EndgameLimit  = 3915
+  MidgameLimit  = 15258, EndgameLimit  = 3915,
+  //for mcts begin
+  HIGH_MCTS=454,
+  HIGH_MIDDLE_MCTS=400,
+  MIDDLE_MCTS=378,
+  MIDDLE_LOW_MCTS=336,
+  LOW_MCTS=310,
+  MIN_MCTS=25
+  //for mcts end
 };
 
 enum PieceType {
