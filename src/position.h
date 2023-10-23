@@ -21,17 +21,19 @@
 
 #include <cassert>
 #include <deque>
-#include <iostream>
 #include <memory> // For std::unique_ptr
 #include <string>
 
 #include "bitboard.h"
 #include "evaluate.h"
 #include "psqt.h"
-#include "misc.h"
 #include "types.h"
 
 #include "nnue/nnue_accumulator.h"
+//from Brainlearn begin
+#include <iostream>
+#include "misc.h"
+//from Brainlearn end
 
 namespace Stockfish {
 //Kelly begin

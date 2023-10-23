@@ -25,11 +25,13 @@
 #include "misc.h"
 #include "search.h"
 #include "thread.h"
-#include "learn.h"
 #include "tt.h"
 #include "uci.h"
-#include "book/book.h"
 #include "syzygy/tbprobe.h"
+//From BrainLearn begin
+#include "learn.h"
+#include "book/book.h"
+//From BrainLearn end
 
 using std::string;
 
@@ -45,10 +47,11 @@ static void on_hash_size(const Option& o) { TT.resize(size_t(o)); }
 static void on_logger(const Option& o) { start_logger(o); }
 static void on_threads(const Option& o) { Threads.set(size_t(o)); }
 static void on_tb_path(const Option& o) { Tablebases::init(o); }
-static void on_use_NNUE(const Option&) { Eval::NNUE::init(); }
 static void on_eval_file(const Option&) { Eval::NNUE::init(); }
+//From learning begin
 static void on_readonly_learning(const Option& o) { LD.set_readonly(o); }
 static void on_self_qlearning(const Option& o) { LD.set_learning_mode((bool)o ? "Self" : "Standard"); }
+//From learning end
 //book management begin
 static void on_book1(const Option& o) { Book::on_book(0, (string)o); }
 static void on_book2(const Option& o) { Book::on_book(1, (string)o); }
@@ -106,9 +109,6 @@ void init(OptionsMap& o) {
   o["MCTS Multi Strategy"]        << Option(20, 0, 100);
   o["MCTS Multi MinVisits"]       << Option(5, 0, 1000);
   //From MCTS end  
-  o["Use NNUE"]              << Option(true, on_use_NNUE);
-  // The default must follow the format nn-[SHA256 first 12 digits].nnue
-  // for the build process (profile-build and fishtest) to work.
   o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);
   //Polyfish ctg and bin books begin	
   o["CTG/BIN Book 1 File"]     << Option("<empty>", on_book1);
