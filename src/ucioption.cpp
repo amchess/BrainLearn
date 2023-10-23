@@ -95,12 +95,17 @@ void init(OptionsMap& o) {
   o["SyzygyProbeDepth"]      << Option(1, 1, 100);
   o["Syzygy50MoveRule"]      << Option(true);
   o["SyzygyProbeLimit"]      << Option(7, 0, 7);
+  //From Kelly begin
   o["Read only learning"]    << Option(false, on_readonly_learning);
   o["Self Q-learning"]       << Option(false, on_self_qlearning);
+  //From Kelly end
+  //From MCTS begin
   o["MCTS"]                  << Option(false);
   o["MCTSThreads"]           << Option(1, 1, 512);
-  o["Multi Strategy"]        << Option(20, 0, 100);
-  o["Multi MinVisits"]       << Option(5, 0, 1000);
+  o["MCTSGoldDigger"]             << Option(1, 1, 6);
+  o["MCTS Multi Strategy"]        << Option(20, 0, 100);
+  o["MCTS Multi MinVisits"]       << Option(5, 0, 1000);
+  //From MCTS end  
   o["Use NNUE"]              << Option(true, on_use_NNUE);
   // The default must follow the format nn-[SHA256 first 12 digits].nnue
   // for the build process (profile-build and fishtest) to work.
