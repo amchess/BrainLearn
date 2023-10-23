@@ -21,7 +21,6 @@
 #include "bitboard.h"
 #include "misc.h" //from Brainlearn
 #include "position.h"
-#include "psqt.h"
 #include "search.h"
 #include "syzygy/tbprobe.h"
 #include "thread.h"
@@ -40,7 +39,6 @@ int main(int argc, char* argv[]) {
   UCI::init(Options);
   Tune::init();
   LD.init();//Kelly
-  PSQT::init();
   Bitboards::init();
   Position::init();
   Threads.set(size_t(Options["Threads"]));
