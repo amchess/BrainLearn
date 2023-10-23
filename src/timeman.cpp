@@ -101,7 +101,8 @@ void TimeManagement::init(Search::LimitsType& limits, Color us, int ply) {
 
   // Never use more than 80% of the available time for this move
   optimumTime = std::max(minThinkingTime, TimePoint(optScale * timeLeft));//from Brainlearn
-  maximumTime = TimePoint(std::min(0.8 * limits.time[us] - moveOverhead, maxScale * optimumTime));
+  maximumTime = TimePoint(std::min(0.8 * limits.time[us] - moveOverhead, maxScale * optimumTime)) - 10;
+
 
   if (Options["Ponder"])
       optimumTime += optimumTime / 4;

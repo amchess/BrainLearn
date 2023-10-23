@@ -21,12 +21,11 @@
 
 #include <cassert>
 #include <chrono>
-#include <algorithm>
-#include <functional>
-
 #include <ostream>
 #include <string>
 //BrainLearn specific begin
+#include <algorithm>
+#include <functional>
 #include <mutex>
 #ifndef _MSC_VER
 #include <mm_malloc.h>
@@ -47,7 +46,6 @@
 //Brainlearn specific end
 #include <vector>
 #include <cstdint>
-
 
 #include "types.h"
 
@@ -79,14 +77,6 @@ inline TimePoint now() {
   return std::chrono::duration_cast<std::chrono::milliseconds>
         (std::chrono::steady_clock::now().time_since_epoch()).count();
 }
-
-template<class Entry, int Size>
-struct HashTable {
-  Entry* operator[](Key key) { return &table[(uint32_t)key & (Size - 1)]; }
-
-private:
-  std::vector<Entry> table = std::vector<Entry>(Size); // Allocate on the heap
-};
 
 
 enum SyncCout { IO_LOCK, IO_UNLOCK };

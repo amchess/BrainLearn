@@ -32,7 +32,7 @@
 #include "thread.h"
 #include "timeman.h"
 #include "tt.h"
-#include "learn.h"
+#include "learn.h"//Khalid
 #include "uci.h"
 #include "mcts/montecarlo.h" //Montecarlo
 #include "book/book.h" //books management
@@ -83,8 +83,8 @@ namespace {
   enum NodeType { NonPV, PV, Root };
 
   // Futility margin
-  Value futility_margin(Depth d, bool improving) {
-    return Value(140 * (d - improving));
+  Value futility_margin(Depth d, bool noTtCutNode, bool improving) {
+    return Value((140 - 40 * noTtCutNode) * (d - improving));
   }
 
   // Reductions lookup table initialized at startup
@@ -853,7 +853,7 @@ namespace {
     //from Kelly End
     bool capture, moveCountPruning, ttCapture;
     Piece movedPiece;
-    int moveCount, captureCount, quietCount, improvement=0;//kelly
+    int moveCount, captureCount, quietCount;
     // from Kelly begin
     bool updatedLearning = false;
 
@@ -928,7 +928,7 @@ namespace {
     // At non-PV nodes we check for an early TT cutoff
     if (  !PvNode
         && !excludedMove
-        && tte->depth() > depth - (tte->bound() == BOUND_EXACT)
+        && tte->depth() > depth
         && ttValue != VALUE_NONE // Possible in case of TT access race or if !ttHit
         && (tte->bound() & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER)))
     {
@@ -1098,7 +1098,6 @@ namespace {
         // Skip early pruning when in check
         ss->staticEval = eval = VALUE_NONE;
         improving = false;
-        improvement = 0;
         goto moves_loop;
     }
     else if (excludedMove)
@@ -1162,14 +1161,14 @@ namespace {
     // from Kelly begin
     if (!expectedPVNode)
     {
-    // Set up the improvement variable, which is the difference between the current
-    // static evaluation and the previous static evaluation at our turn (if we were
-    // in check at our previous move we look at the move prior to it). The improvement
-    // margin and the improving flag are used in various pruning heuristics.
-    improvement =   (ss-2)->staticEval != VALUE_NONE ? ss->staticEval - (ss-2)->staticEval
-                  : (ss-4)->staticEval != VALUE_NONE ? ss->staticEval - (ss-4)->staticEval
-                  :                                    173;
-    improving = improvement > 0;
+    // Set up the improving flag, which is true if current static evaluation is
+    // bigger than the previous static evaluation at our turn (if we were in 
+    // check at our previous move we look at static evaluaion at move prior to it
+    // and if we were in check at move prior to it flag is set to true) and is
+    // false otherwise. The improving flag is used in various pruning heuristics.
+    improving =   (ss-2)->staticEval != VALUE_NONE ? ss->staticEval > (ss-2)->staticEval
+                : (ss-4)->staticEval != VALUE_NONE ? ss->staticEval > (ss-4)->staticEval
+                : true;
     }
     // from Kelly end
     // Step 7. Razoring (~1 Elo).
@@ -1186,7 +1185,7 @@ namespace {
     // The depth condition is important for mate finding.
     if (   !ss->ttPv
         &&  depth < 9
-        &&  eval - futility_margin(depth, improving) - (ss-1)->statScore / 306 >= beta
+        &&  eval - futility_margin(depth, cutNode && !ss->ttHit, improving) - (ss-1)->statScore / 306 >= beta
         &&  eval >= beta
         &&  eval < 24923) // larger than VALUE_KNOWN_WIN, but smaller than TB wins
         return eval;
@@ -1918,7 +1917,7 @@ moves_loop: // When in check, search starts here
             return bestValue;
         }
 
-        if (PvNode && bestValue > alpha)
+        if (bestValue > alpha)
             alpha = bestValue;
 
         futilityBase = bestValue + 200;
@@ -2030,7 +2029,7 @@ moves_loop: // When in check, search starts here
                 if (PvNode) // Update pv even in fail-high case
                     update_pv(ss->pv, move, (ss+1)->pv);
 
-                if (PvNode && value < beta) // Update alpha here!
+                if (value < beta) // Update alpha here!
                     alpha = value;
                 else
                     break; // Fail high
@@ -2350,7 +2349,7 @@ void MainThread::check_time() {
       return;
 
   // When using nodes, ensure checking rate is not lower than 0.1% of nodes
-  callsCnt = Limits.nodes ? std::min(1024, int(Limits.nodes / 1024)) : 1024;
+  callsCnt = Limits.nodes ? std::min(512, int(Limits.nodes / 1024)) : 512;
 
   static TimePoint lastInfoTime = now();
 
@@ -2367,7 +2366,7 @@ void MainThread::check_time() {
   if (ponder)
       return;
 
-  if (   (Limits.use_time_management() && (elapsed > Time.maximum() - 10 || stopOnPonderhit))
+  if (   (Limits.use_time_management() && (elapsed > Time.maximum() || stopOnPonderhit))
       || (Limits.movetime && elapsed >= Limits.movetime)
       || (Limits.nodes && Threads.nodes_searched() >= (uint64_t)Limits.nodes))
       Threads.stop = true;
