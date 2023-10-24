@@ -707,7 +707,7 @@ namespace Stockfish {
 			const CapturePieceToHistory* cph = &thread->captureHistory;
 			const ButterflyHistory* mh = &thread->mainHistory;
 			const PieceToHistory* contHist[] = { stack[ply - 1].continuationHistory, stack[ply - 2].continuationHistory,
-												nullptr, stack[ply - 4].continuationHistory,
+												stack[ply - 1].continuationHistory, stack[ply - 4].continuationHistory,
 												nullptr, stack[ply - 6].continuationHistory };
 
 			MovePicker mp(pos, ttMove, depth, mh, cph, contHist, countermove, killers);
