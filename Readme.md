@@ -29,7 +29,6 @@
 
 </div>
 
-
 ## Overview
 
 [Stockfish][website-link] is a **free and strong UCI chess engine** derived from
@@ -59,6 +58,32 @@ This distribution of Stockfish consists of the following files:
 
   * a file with the .nnue extension, storing the neural network for the NNUE
     evaluation. Binary distributions will have this file embedded.
+
+## Contributing
+
+__See [Contributing Guide](CONTRIBUTING.md).__
+
+### Donating hardware
+
+Improving Stockfish requires a massive amount of testing. You can donate your
+hardware resources by installing the [Fishtest Worker][worker-link] and viewing
+the current tests on [Fishtest][fishtest-link].
+
+### Improving the code
+
+In the [chessprogramming wiki][programming-link], many techniques used in
+Stockfish are explained with a lot of background information.
+The [section on Stockfish][programmingsf-link] describes many features
+and techniques used by Stockfish. However, it is generic rather than
+focused on Stockfish's precise implementation.
+
+The engine testing is done on [Fishtest][fishtest-link].
+If you want to help improve Stockfish, please read this [guideline][guideline-link]
+first, where the basics of Stockfish development are explained.
+
+Discussions about Stockfish take place these days mainly in the Stockfish
+[Discord server][discord-link]. This is also the best place to ask questions
+about the codebase and how to improve it.
 
 ## The UCI protocol
 
@@ -333,31 +358,8 @@ make -j profile-build ARCH=x86-64-avx2
 ```
 
 Detailed compilation instructions for all platforms can be found in our
-[documentation][wiki-compile-link].
-
-## Contributing
-
-### Donating hardware
-
-Improving Stockfish requires a massive amount of testing. You can donate your
-hardware resources by installing the [Fishtest Worker][worker-link] and viewing
-the current tests on [Fishtest][fishtest-link].
-
-### Improving the code
-
-In the [chessprogramming wiki][programming-link], many techniques used in
-Stockfish are explained with a lot of background information.
-The [section on Stockfish][programmingsf-link] describes many features
-and techniques used by Stockfish. However, it is generic rather than
-focused on Stockfish's precise implementation.
-
-The engine testing is done on [Fishtest][fishtest-link].
-If you want to help improve Stockfish, please read this [guideline][guideline-link]
-first, where the basics of Stockfish development are explained.
-
-Discussions about Stockfish take place these days mainly in the Stockfish
-[Discord server][discord-link]. This is also the best place to ask questions
-about the codebase and how to improve it.
+[documentation][wiki-compile-link]. Our wiki also has information about
+the [UCI commands][wiki-uci-link] supported by Stockfish.
 
 ## Terms of use
 
@@ -383,7 +385,7 @@ also be made available under GPL v3.
 [issue-link]:         https://github.com/official-stockfish/Stockfish/issues/new?assignees=&labels=&template=BUG-REPORT.yml
 [discussions-link]:   https://github.com/official-stockfish/Stockfish/discussions/new
 [fishtest-link]:      https://tests.stockfishchess.org/tests
-[guideline-link]:     https://github.com/glinscott/fishtest/wiki/Creating-my-first-test
+[guideline-link]:     https://github.com/official-stockfish/fishtest/wiki/Creating-my-first-test
 [license-link]:       https://github.com/official-stockfish/Stockfish/blob/master/Copying.txt
 [programming-link]:   https://www.chessprogramming.org/Main_Page
 [programmingsf-link]: https://www.chessprogramming.org/Stockfish
@@ -395,10 +397,10 @@ also be made available under GPL v3.
 [website-link]:       https://stockfishchess.org
 [website-blog-link]:  https://stockfishchess.org/blog/
 [wiki-link]:          https://github.com/official-stockfish/Stockfish/wiki
-[wiki-usage-link]:    https://github.com/official-stockfish/Stockfish/wiki/Download-and-usage
 [wiki-compile-link]:  https://github.com/official-stockfish/Stockfish/wiki/Compiling-from-source
-[wiki-commands-link]: https://github.com/official-stockfish/Stockfish/wiki/Commands
-[worker-link]:        https://github.com/glinscott/fishtest/wiki/Running-the-worker
+[wiki-uci-link]:      https://github.com/official-stockfish/Stockfish/wiki/UCI-&-Commands
+[wiki-usage-link]:    https://github.com/official-stockfish/Stockfish/wiki/Download-and-usage
+[worker-link]:        https://github.com/official-stockfish/fishtest/wiki/Running-the-worker
 
 [build-badge]:        https://img.shields.io/github/actions/workflow/status/official-stockfish/Stockfish/stockfish.yml?branch=master&style=for-the-badge&label=stockfish&logo=github
 [commits-badge]:      https://img.shields.io/github/commits-since/official-stockfish/Stockfish/latest?style=for-the-badge

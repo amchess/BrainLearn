@@ -573,7 +573,7 @@ endif
 ### 3.3 Optimization
 ifeq ($(optimize),yes)
 
-	CXXFLAGS += -O3
+	CXXFLAGS += -O3 -funroll-loops
 
 	ifeq ($(comp),gcc)
 		ifeq ($(OS), Android)
@@ -906,33 +906,33 @@ netvariables:
 net: netvariables
 	@echo "Default net: $(nnuenet)"
 	@if [ "x$(curl_or_wget)" = "x" ]; then \
-	    echo "Neither curl nor wget is installed. Install one of these tools unless the net has been downloaded manually"; \
+		echo "Neither curl nor wget is installed. Install one of these tools unless the net has been downloaded manually"; \
 	fi
 	@if [ "x$(shasum_command)" = "x" ]; then \
-        echo "shasum / sha256sum not found, skipping net validation"; \
-    elif test -f "$(nnuenet)"; then \
-	    if [ "$(nnuenet)" != "nn-"`$(shasum_command) $(nnuenet) | cut -c1-12`".nnue" ]; then \
-	        echo "Removing invalid network"; rm -f $(nnuenet); \
-	    fi; \
+		echo "shasum / sha256sum not found, skipping net validation"; \
+	elif test -f "$(nnuenet)"; then \
+		if [ "$(nnuenet)" != "nn-"`$(shasum_command) $(nnuenet) | cut -c1-12`".nnue" ]; then \
+			echo "Removing invalid network"; rm -f $(nnuenet); \
+		fi; \
 	fi;
 	@for nnuedownloadurl in "$(nnuedownloadurl1)" "$(nnuedownloadurl2)"; do \
 		if test -f "$(nnuenet)"; then \
-	    	echo "$(nnuenet) available : OK"; break; \
+			echo "$(nnuenet) available : OK"; break; \
 		else \
-	    	if [ "x$(curl_or_wget)" != "x" ]; then \
+			if [ "x$(curl_or_wget)" != "x" ]; then \
 				echo "Downloading $${nnuedownloadurl}"; $(curl_or_wget) $${nnuedownloadurl} > $(nnuenet);\
 			else \
 				echo "No net found and download not possible"; exit 1;\
-	    	fi; \
+			fi; \
 		fi; \
 		if [ "x$(shasum_command)" != "x" ]; then \
-	    	if [ "$(nnuenet)" != "nn-"`$(shasum_command) $(nnuenet) | cut -c1-12`".nnue" ]; then \
+			if [ "$(nnuenet)" != "nn-"`$(shasum_command) $(nnuenet) | cut -c1-12`".nnue" ]; then \
 				echo "Removing failed download"; rm -f $(nnuenet); \
-	    	fi; \
+			fi; \
 		fi; \
 	done
 	@if ! test -f "$(nnuenet)"; then \
-	    echo "Failed to download $(nnuenet)."; \
+		echo "Failed to download $(nnuenet)."; \
 	fi;
 	@if [ "x$(shasum_command)" != "x" ]; then \
 		if [ "$(nnuenet)" = "nn-"`$(shasum_command) $(nnuenet) | cut -c1-12`".nnue" ]; then \

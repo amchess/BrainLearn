@@ -29,6 +29,7 @@ Aram Tumanian (atumanian)
 Arjun Temurnikar
 Artem Solopiy (EntityFX)
 Auguste Pop
+Balazs Szilagyi
 Balint Pfliegel
 Ben Chaney (Chaneybenjamini)
 Ben Koshy (BKSpurgeon)
@@ -97,6 +98,7 @@ Jake Senne (w1wwwwww)
 Jan Ondruš (hxim)
 Jared Kish (Kurtbusch, kurt22i)
 Jarrod Torriero (DU-jdto)
+Jasper Shovelton (Beanie496)
 Jean-Francois Romang (jromang)
 Jean Gauthier (OuaisBla)
 Jekaa
@@ -208,6 +210,7 @@ Steinar Gunderson (sesse)
 Stéphane Nicolet (snicolet)
 Stephen Touset (stouset)
 Syine Mineta (MinetaS)
+Taras Vuk (TarasVuk)
 Thanar2
 thaspel
 theo77186
@@ -229,4 +232,4 @@ zz4032
 # Additionally, we acknowledge the authors and maintainers of fishtest,
 # an amazing and essential framework for Stockfish development!
 #
-# https://github.com/glinscott/fishtest/blob/master/AUTHORS
+# https://github.com/official-stockfish/fishtest/blob/master/AUTHORS
