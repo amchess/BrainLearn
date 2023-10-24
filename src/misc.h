@@ -21,7 +21,9 @@
 
 #include <cassert>
 #include <chrono>
-#include <ostream>
+#include <cstddef>
+#include <cstdint>
+#include <iosfwd>
 #include <string>
 //BrainLearn specific begin
 #include <algorithm>
