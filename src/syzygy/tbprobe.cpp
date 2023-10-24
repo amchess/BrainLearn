@@ -16,33 +16,38 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "tbprobe.h"
+
+#include <sys/stat.h>
 #include <algorithm>
 #include <atomic>
+#include <cassert>
 #include <cstdint>
-#include <cstring>   // For std::memset and std::memcpy
+#include <cstdlib>
+#include <cstring>
 #include <deque>
 #include <fstream>
+#include <initializer_list>
 #include <iostream>
-#include <list>
 #include <mutex>
 #include <sstream>
 #include <string_view>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 #include "../bitboard.h"
+#include "../misc.h"
 #include "../movegen.h"
 #include "../position.h"
 #include "../search.h"
 #include "../types.h"
 #include "../uci.h"
 
-#include "tbprobe.h"
-
 #ifndef _WIN32
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/mman.h>
-#include <sys/stat.h>
+#include <unistd.h>
 #else
 #define WIN32_LEAN_AND_MEAN
 #ifndef NOMINMAX
@@ -997,7 +1002,7 @@ uint8_t* set_sizes(PairsData* d, uint8_t* data) {
 
     // See https://en.wikipedia.org/wiki/Huffman_coding
     // The canonical code is ordered such that longer symbols (in terms of
-    // the number of bits of their Huffman code) have a lower numeric value,
+    // the number of bits of their Huffman code) have lower numeric value,
     // so that d->lowestSym[i] >= d->lowestSym[i+1] (when read as LittleEndian).
     // Starting from this we compute a base64[] table indexed by symbol length
     // and containing 64 bit values so that d->base64[i] >= d->base64[i+1].
