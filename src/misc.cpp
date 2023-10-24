@@ -55,6 +55,7 @@ using fun8_t = bool(*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES
 #include <mutex>
 #include <sstream>
 #include <string_view>
+
 #include "types.h"
 //from Brainlearn begin
 #include <functional>
@@ -70,14 +71,12 @@ using fun8_t = bool(*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES
 #include <stdlib.h>
 #endif
 
-using namespace std;
-
 namespace Stockfish {
 
 namespace {
 
 /// Version number or dev.
-constexpr string_view version = "25.2";
+constexpr std::string_view version = "dev";
 
 /// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 /// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
@@ -85,16 +84,16 @@ constexpr string_view version = "25.2";
 /// usual I/O functionality, all without changing a single line of code!
 /// Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
 
-struct Tie: public streambuf { // MSVC requires split streambuf for cin and cout
+struct Tie: public std::streambuf { // MSVC requires split streambuf for cin and cout
 
-  Tie(streambuf* b, streambuf* l) : buf(b), logBuf(l) {}
+  Tie(std::streambuf* b, std::streambuf* l) : buf(b), logBuf(l) {}
 
   int sync() override { return logBuf->pubsync(), buf->pubsync(); }
   int overflow(int c) override { return log(buf->sputc((char)c), "<< "); }
   int underflow() override { return buf->sgetc(); }
   int uflow() override { return log(buf->sbumpc(), ">> "); }
 
-  streambuf *buf, *logBuf;
+  std::streambuf *buf, *logBuf;
 
   int log(int c, const char* prefix) {
 
@@ -109,10 +108,10 @@ struct Tie: public streambuf { // MSVC requires split streambuf for cin and cout
 
 class Logger {
 
-  Logger() : in(cin.rdbuf(), file.rdbuf()), out(cout.rdbuf(), file.rdbuf()) {}
+  Logger() : in(std::cin.rdbuf(), file.rdbuf()), out(std::cout.rdbuf(), file.rdbuf()) {}
  ~Logger() { start(""); }
 
-  ofstream file;
+  std::ofstream file;
   Tie in, out;
 
 public:
@@ -122,23 +121,23 @@ public:
 
     if (l.file.is_open())
     {
-        cout.rdbuf(l.out.buf);
-        cin.rdbuf(l.in.buf);
+        std::cout.rdbuf(l.out.buf);
+        std::cin.rdbuf(l.in.buf);
         l.file.close();
     }
 
     if (!fname.empty())
     {
-        l.file.open(fname, ifstream::out);
+        l.file.open(fname, std::ifstream::out);
 
         if (!l.file.is_open())
         {
-            cerr << "Unable to open debug log file " << fname << endl;
+            std::cerr << "Unable to open debug log file " << fname << std::endl;
             exit(EXIT_FAILURE);
         }
 
-        cin.rdbuf(&l.in);
-        cout.rdbuf(&l.out);
+        std::cin.rdbuf(&l.in);
+        std::cout.rdbuf(&l.out);
     }
   }
 };
@@ -155,9 +154,9 @@ public:
 /// For releases (non dev builds) we only include the version number:
 /// Brainlearn version
 
-string engine_info(bool to_uci) {
-  stringstream ss;
-  ss << "Brainlearn " << version << setfill('0');
+std::string engine_info(bool to_uci) {
+  std::stringstream ss;
+  ss << "Brainlearn " << version << std::setfill('0');
 
   if constexpr (version == "dev")
   {
@@ -165,12 +164,12 @@ string engine_info(bool to_uci) {
       #ifdef GIT_DATE
       ss << stringify(GIT_DATE);
       #else
-      constexpr string_view months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
-      string month, day, year;
-      stringstream date(__DATE__); // From compiler, format is "Sep 21 2008"
+      constexpr std::string_view months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
+      std::string month, day, year;
+      std::stringstream date(__DATE__); // From compiler, format is "Sep 21 2008"
 
       date >> month >> day >> year;
-      ss << year << setw(2) << setfill('0') << (1 + months.find(month) / 4) << setw(2) << setfill('0') << day;
+      ss << year << std::setw(2) << std::setfill('0') << (1 + months.find(month) / 4) << std::setw(2) << std::setfill('0') << day;
       #endif
 
       ss << "-";
@@ -743,12 +742,12 @@ void bindThisThread(size_t idx) {
 
 namespace CommandLine {
 
-string argv0;            // path+name of the executable binary, as given by argv[0]
-string binaryDirectory;  // path of the executable directory
-string workingDirectory; // path of the working directory
+std::string argv0;            // path+name of the executable binary, as given by argv[0]
+std::string binaryDirectory;  // path of the executable directory
+std::string workingDirectory; // path of the working directory
 
 void init([[maybe_unused]] int argc, char* argv[]) {
-    string pathSeparator;
+    std::string pathSeparator;
 
     // extract the path+name of the executable binary
     argv0 = argv[0];
@@ -792,19 +791,19 @@ void init([[maybe_unused]] int argc, char* argv[]) {
 namespace Utility
 {
     //begin learning from Khalid
-    string myFolder;
+    std::string myFolder;
 
     void init(const char* arg0)
     {
-        string s = arg0;
+        std::string s = arg0;
         size_t i = s.find_last_of(DirectorySeparator);
-        if(i != string::npos)
+        if(i != std::string::npos)
             myFolder = s.substr(0, i);
     }
     //end learning from Khalid    
-    string unquote(const string& s)
+    std::string unquote(const std::string& s)
     {
-        string s1 = s;
+        std::string s1 = s;
 
         if (s1.size() > 2)
         {
@@ -817,30 +816,30 @@ namespace Utility
         return s1;
     }
 
-    bool is_empty_filename(const string &fn)
+    bool is_empty_filename(const std::string &fn)
     {
         if (fn.empty())
             return true;
 
-        static string Empty = EMPTY;
+        static std::string Empty = EMPTY;
         return equal(
             fn.begin(), fn.end(),
             Empty.begin(), Empty.end(),
             [](char a, char b) { return tolower(a) == tolower(b); });
     }
 
-    string fix_path(const string& p)
+    std::string fix_path(const std::string& p)
     {
         if (is_empty_filename(p))
             return p;
 
-        string p1 = unquote(p);
+        std::string p1 = unquote(p);
         replace(p1.begin(), p1.end(), ReverseDirectorySeparator, DirectorySeparator);
 
         return p1;
     }
 
-    string combine_path(const string& p1, const string& p2)
+    std::string combine_path(const std::string& p1, const std::string& p2)
     {
         //We don't expect the first part of the path to be empty!
         assert(is_empty_filename(p1) == false);
@@ -848,7 +847,7 @@ namespace Utility
         if (is_empty_filename(p2))
             return p2;
 
-        string p;
+        std::string p;
         if (p1.back() == DirectorySeparator || p1.back() == ReverseDirectorySeparator)
             p = p1 + p2;
         else
@@ -857,62 +856,62 @@ namespace Utility
         return fix_path(p);
     }
 
-    string map_path(const string& p)
+    std::string map_path(const std::string& p)
     {
         if (is_empty_filename(p))
             return p;
 
-        string p2 = fix_path(p);
+        std::string p2 = fix_path(p);
 
         //Make sure we can map this path
-        if (p2.find(DirectorySeparator) == string::npos)
+        if (p2.find(DirectorySeparator) == std::string::npos)
             p2 = combine_path(CommandLine::binaryDirectory, p);
 
         return p2;
     }
 
-    size_t get_file_size(const string& f)
+    size_t get_file_size(const std::string& f)
     {
         if(is_empty_filename(f))
             return (size_t)-1;
 
-        ifstream in(map_path(f), ifstream::ate | ifstream::binary);
+        std::ifstream in(map_path(f), std::ifstream::ate | std::ifstream::binary);
         if (!in.is_open())
             return (size_t)-1;
 
         return (size_t)in.tellg();
     }
 
-    bool is_same_file(const string& f1, const string& f2)
+    bool is_same_file(const std::string& f1, const std::string& f2)
     {
         return map_path(f1) == map_path(f2);
     }
 
-    string format_bytes(uint64_t bytes, int decimals)
+    std::string format_bytes(uint64_t bytes, int decimals)
     {
         static const uint64_t KB = 1024;
         static const uint64_t MB = KB * 1024;
         static const uint64_t GB = MB * 1024;
         static const uint64_t TB = GB * 1024;
 
-        stringstream ss;
+        std::stringstream ss;
 
         if (bytes < KB)
             ss << bytes << " B";
         else if (bytes < MB)
-            ss << fixed << setprecision(decimals) << ((double)bytes / KB) << "KB";
+            ss << std::fixed << std::setprecision(decimals) << ((double)bytes / KB) << "KB";
         else if (bytes < GB)
-            ss << fixed << setprecision(decimals) << ((double)bytes / MB) << "MB";
+            ss << std::fixed << std::setprecision(decimals) << ((double)bytes / MB) << "MB";
         else if (bytes < TB)
-            ss << fixed << setprecision(decimals) << ((double)bytes / GB) << "GB";
+            ss << std::fixed << std::setprecision(decimals) << ((double)bytes / GB) << "GB";
         else
-            ss << fixed << setprecision(decimals) << ((double)bytes / TB) << "TB";
+            ss << std::fixed << std::setprecision(decimals) << ((double)bytes / TB) << "TB";
 
         return ss.str();
     }
 
     //Code is an `edited` version of: https://stackoverflow.com/a/49812018
-    string format_string(const char* const fmt, ...)
+    std::string format_string(const char* const fmt, ...)
     {
         //Initialize use of the variable arguments
         va_list vaArgs;
@@ -925,13 +924,13 @@ namespace Utility
 
         
         //Allocate enough buffer and format
-        vector<char> v(len + 1);
+        std::vector<char> v(len + 1);
         
         va_start(vaArgs, fmt);
         vsnprintf(v.data(), v.size(), fmt, vaArgs);
         va_end(vaArgs);
 
-        return string(v.data(), len);
+        return std::string(v.data(), len);
     }        
     bool is_game_decided(const Position& pos, Value lastScore)
     {
