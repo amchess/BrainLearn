@@ -1,4 +1,4 @@
-name: Stockfish
+name: Brainlearn
 on:
   workflow_call:
 jobs:
@@ -7,13 +7,13 @@ jobs:
     runs-on: ubuntu-22.04
     defaults:
       run:
-        working-directory: Stockfish/src
+        working-directory: Brainlearn/src
         shell: bash
     steps:
-      - name: Checkout Stockfish
+      - name: Checkout Brainlearn
         uses: actions/checkout@v3
         with:
-          path: Stockfish
+          path: Brainlearn
 
       - name: Checkout include-what-you-use
         uses: actions/checkout@v3
@@ -44,4 +44,4 @@ jobs:
           make analyze
           COMP=clang
           CXX=include-what-you-use
-          CXXFLAGS="-stdlib=libc++ -Xiwyu --comment_style=long -Xiwyu --mapping='${{ github.workspace }}/Stockfish/.github/workflows/libcxx17.imp' -Xiwyu --error"
+          CXXFLAGS="-stdlib=libc++ -Xiwyu --comment_style=long -Xiwyu --mapping='${{ github.workspace }}/Brainlearn/.github/workflows/libcxx17.imp' -Xiwyu --error"

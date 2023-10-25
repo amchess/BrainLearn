@@ -1,13 +1,13 @@
 /*
-  Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Brainlearn, a UCI chess playing engine derived from Glaurung 2.1
+  Copyright (C) 2004-2023 The Brainlearn developers (see AUTHORS file)
 
-  Stockfish is free software: you can redistribute it and/or modify
+  Brainlearn is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Stockfish is distributed in the hope that it will be useful,
+  Brainlearn is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
@@ -23,12 +23,12 @@
 #include <string>
 #include <vector>
 
-namespace Stockfish {
+namespace Brainlearn {
 
 class Position;
 
 std::vector<std::string> setup_bench(const Position&, std::istream&);
 
-} // namespace Stockfish
+}  // namespace Brainlearn
 
-#endif // #ifndef BENCHMARK_H_INCLUDED
+#endif  // #ifndef BENCHMARK_H_INCLUDED

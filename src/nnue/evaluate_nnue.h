@@ -1,13 +1,13 @@
 /*
-  Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Brainlearn, a UCI chess playing engine derived from Glaurung 2.1
+  Copyright (C) 2004-2023 The Brainlearn developers (see AUTHORS file)
 
-  Stockfish is free software: you can redistribute it and/or modify
+  Brainlearn is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Stockfish is distributed in the hope that it will be useful,
+  Brainlearn is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
@@ -31,49 +31,49 @@
 #include "nnue_architecture.h"
 #include "nnue_feature_transformer.h"
 
-namespace Stockfish {
-  class Position;
-  enum Value : int;
+namespace Brainlearn {
+class Position;
+enum Value : int;
 }
 
-namespace Stockfish::Eval::NNUE {
+namespace Brainlearn::Eval::NNUE {
 
-  // Hash value of evaluation function structure
-  constexpr std::uint32_t HashValue =
-      FeatureTransformer::get_hash_value() ^ Network::get_hash_value();
+// Hash value of evaluation function structure
+constexpr std::uint32_t HashValue =
+  FeatureTransformer::get_hash_value() ^ Network::get_hash_value();
 
 
-  // Deleter for automating release of memory area
-  template <typename T>
-  struct AlignedDeleter {
+// Deleter for automating release of memory area
+template<typename T>
+struct AlignedDeleter {
     void operator()(T* ptr) const {
-      ptr->~T();
-      std_aligned_free(ptr);
+        ptr->~T();
+        std_aligned_free(ptr);
     }
-  };
+};
 
-  template <typename T>
-  struct LargePageDeleter {
+template<typename T>
+struct LargePageDeleter {
     void operator()(T* ptr) const {
-      ptr->~T();
-      aligned_large_pages_free(ptr);
+        ptr->~T();
+        aligned_large_pages_free(ptr);
     }
-  };
+};
 
-  template <typename T>
-  using AlignedPtr = std::unique_ptr<T, AlignedDeleter<T>>;
+template<typename T>
+using AlignedPtr = std::unique_ptr<T, AlignedDeleter<T>>;
 
-  template <typename T>
-  using LargePagePtr = std::unique_ptr<T, LargePageDeleter<T>>;
+template<typename T>
+using LargePagePtr = std::unique_ptr<T, LargePageDeleter<T>>;
 
-  std::string trace(Position& pos);
-  Value evaluate(const Position& pos, bool adjusted = false, int* complexity = nullptr);
-  void hint_common_parent_position(const Position& pos);
+std::string trace(Position& pos);
+Value       evaluate(const Position& pos, bool adjusted = false, int* complexity = nullptr);
+void        hint_common_parent_position(const Position& pos);
 
-  bool load_eval(std::string name, std::istream& stream);
-  bool save_eval(std::ostream& stream);
-  bool save_eval(const std::optional<std::string>& filename);
+bool load_eval(std::string name, std::istream& stream);
+bool save_eval(std::ostream& stream);
+bool save_eval(const std::optional<std::string>& filename);
 
-}  // namespace Stockfish::Eval::NNUE
+}  // namespace Brainlearn::Eval::NNUE
 
-#endif // #ifndef NNUE_EVALUATE_NNUE_H_INCLUDED
+#endif  // #ifndef NNUE_EVALUATE_NNUE_H_INCLUDED

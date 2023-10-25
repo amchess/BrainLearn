@@ -1,8 +1,8 @@
-name: Stockfish
+name: Brainlearn
 on:
   workflow_call:
 jobs:
-  Stockfish:
+  Brainlearn:
     name: ${{ matrix.sanitizers.name }}
     runs-on: ${{ matrix.config.os }}
     env:
