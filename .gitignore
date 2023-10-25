@@ -1,0 +1,15 @@
+# Files from build
+**/*.o
+**/*.s
+src/.depend
+
+# Built binary
+src/brainlearn*
+src/-lstdc++.res
+
+# Neural network for the NNUE evaluation
+**/*.nnue
+
+# Experience files
+**/*.exp
+
