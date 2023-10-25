@@ -4,20 +4,20 @@ SET PATH=C:\msys64\mingw32\bin;C:\msys64\usr\bin;%PATH%
 Title "x86-32"
 make clean
 mingw32-make -f MakeFile profile-build ARCH=x86-32 COMP=mingw
-strip stockfish.exe
-ren stockfish.exe "Brainlearn26-x86-32.exe"
+strip brainlearn.exe
+ren brainlearn.exe "Brainlearn26.1-x86-32.exe"
 
 Title "x86-32-old"
 make clean
 mingw32-make -f MakeFile profile-build ARCH=x86-32-old COMP=mingw
-strip stockfish.exe
-ren stockfish.exe "Brainlearn26-x86-32-old.exe"
+strip brainlearn.exe
+ren brainlearn.exe "Brainlearn26.1-x86-32-old.exe"
 
 Title "general-32"
 make clean
 mingw32-make -f MakeFile profile-build ARCH=general-32 COMP=mingw
-strip stockfish.exe
-ren stockfish.exe "Brainlearn26-general-32.exe"
+strip brainlearn.exe
+ren brainlearn.exe "Brainlearn26.1-general-32.exe"
 
 make clean
 ren C:\MinGW\mingw32 mingw32-730-pd
