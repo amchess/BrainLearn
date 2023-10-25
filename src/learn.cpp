@@ -5,26 +5,23 @@
 #include "learn.h"
 #include "uci.h"
 
-using namespace Stockfish;
+using namespace Brainlearn;
 
 LearningData LD;
 
-namespace
-{
-    LearningMode identify_learning_mode(const std::string& lm)
-    {
-        if (lm == "Off")
-            return LearningMode::Off;
+namespace {
+LearningMode identify_learning_mode(const std::string& lm) {
+    if (lm == "Off")
+        return LearningMode::Off;
 
-        if (lm == "Standard")
-            return LearningMode::Standard;
+    if (lm == "Standard")
+        return LearningMode::Standard;
 
-        return LearningMode::Self;
-    }
+    return LearningMode::Self;
+}
 }
 
-bool LearningData::load(const std::string& filename)
-{
+bool LearningData::load(const std::string& filename) {
     std::ifstream in(filename, std::ios::in | std::ios::binary);
 
     //Quick exit if file is not present
@@ -38,7 +35,8 @@ bool LearningData::load(const std::string& filename)
     //File size should be a multiple of 'PersistedLearningMove'
     if (fileSize % sizeof(PersistedLearningMove))
     {
-        std::cerr << "info string The file <" << filename << "> with size <" << fileSize << "> is not a valid experience file" << std::endl;
+        std::cerr << "info string The file <" << filename << "> with size <" << fileSize
+                  << "> is not a valid experience file" << std::endl;
         return false;
     }
 
@@ -46,18 +44,20 @@ bool LearningData::load(const std::string& filename)
     void* fileData = malloc(fileSize);
     if (!fileData)
     {
-        std::cerr << "info string Failed to allocate <" << fileSize << "> bytes to read experience file <" << filename << ">" << std::endl;
+        std::cerr << "info string Failed to allocate <" << fileSize
+                  << "> bytes to read experience file <" << filename << ">" << std::endl;
         return false;
     }
 
     //Read the entire file
-    in.seekg(0, std::ios::beg); //Move read pointer to the beginning of the file
-    in.read((char*)fileData, fileSize);
+    in.seekg(0, std::ios::beg);  //Move read pointer to the beginning of the file
+    in.read((char*) fileData, fileSize);
     if (!in)
     {
         free(fileData);
 
-        std::cerr << "info string Failed to read <" << fileSize << "> bytes from experience file <" << filename << ">" << std::endl;
+        std::cerr << "info string Failed to read <" << fileSize << "> bytes from experience file <"
+                  << filename << ">" << std::endl;
         return false;
     }
 
@@ -68,19 +68,18 @@ bool LearningData::load(const std::string& filename)
     mainDataBuffers.push_back(fileData);
 
     //Loop the moves from this file
-    bool qLearning = (learningMode == LearningMode::Self);
-    PersistedLearningMove *persistedLearningMove = (PersistedLearningMove*)fileData;
+    bool                   qLearning             = (learningMode == LearningMode::Self);
+    PersistedLearningMove* persistedLearningMove = (PersistedLearningMove*) fileData;
     do
     {
         insert_or_update(persistedLearningMove, qLearning);
         ++persistedLearningMove;
-    } while ((size_t)persistedLearningMove < (size_t)fileData + fileSize);
+    } while ((size_t) persistedLearningMove < (size_t) fileData + fileSize);
 
     return true;
 }
 
-void LearningData::insert_or_update(PersistedLearningMove *plm, bool qLearning)
-{
+void LearningData::insert_or_update(PersistedLearningMove* plm, bool qLearning) {
     // We search in the range of all the hash table entries with plm's key
     auto range = HT.equal_range(plm->key);
 
@@ -89,7 +88,7 @@ void LearningData::insert_or_update(PersistedLearningMove *plm, bool qLearning)
     if (range.first == range.second)
     {
         //Insert new key and learningMove
-        HT.insert({plm->key, &plm->learningMove });
+        HT.insert({plm->key, &plm->learningMove});
 
         //Flag for persisting
         needPersisting = true;
@@ -97,27 +96,28 @@ void LearningData::insert_or_update(PersistedLearningMove *plm, bool qLearning)
         //Nothing else to do
         return;
     }
-	//The plm's key belongs to a position already existing in the 'LHT'
+    //The plm's key belongs to a position already existing in the 'LHT'
     //Check if this move already exists for this position
-    auto itr = std::find_if(
-        range.first,
-        range.second,
-        [&plm](const auto &p) { return p.second->move == plm->learningMove.move; });
+    auto itr = std::find_if(range.first, range.second, [&plm](const auto& p) {
+        return p.second->move == plm->learningMove.move;
+    });
 
-	//If the move does not exist then insert it
+    //If the move does not exist then insert it
     LearningMove* bestNewMoveCandidate = nullptr;
     if (itr == range.second)
     {
-        HT.insert({ plm->key, &plm->learningMove });
+        HT.insert({plm->key, &plm->learningMove});
         bestNewMoveCandidate = &plm->learningMove;
 
         //Flag for persisting
         needPersisting = true;
     }
-    else //If the move exists, check if it better than the move we already have
+    else  //If the move exists, check if it better than the move we already have
     {
         LearningMove* existingMove = itr->second;
-        if (existingMove->depth < plm->learningMove.depth || (existingMove->depth == plm->learningMove.depth && existingMove->score < plm->learningMove.score))
+        if (existingMove->depth < plm->learningMove.depth
+            || (existingMove->depth == plm->learningMove.depth
+                && existingMove->score < plm->learningMove.score))
         {
             //Replace the existing move
             *existingMove = plm->learningMove;
@@ -134,7 +134,7 @@ void LearningData::insert_or_update(PersistedLearningMove *plm, bool qLearning)
     bool newBestMove = false;
     if (bestNewMoveCandidate != nullptr)
     {
-        LearningMove *currentBestMove = range.first->second;
+        LearningMove* currentBestMove = range.first->second;
         if (bestNewMoveCandidate != currentBestMove)
         {
             if (qLearning)
@@ -146,7 +146,9 @@ void LearningData::insert_or_update(PersistedLearningMove *plm, bool qLearning)
             }
             else
             {
-                if ((currentBestMove->depth < bestNewMoveCandidate->depth) || (currentBestMove->depth == bestNewMoveCandidate->depth && currentBestMove->score <= bestNewMoveCandidate->score))
+                if ((currentBestMove->depth < bestNewMoveCandidate->depth)
+                    || (currentBestMove->depth == bestNewMoveCandidate->depth
+                        && currentBestMove->score <= bestNewMoveCandidate->score))
                 {
                     newBestMove = true;
                 }
@@ -159,9 +161,9 @@ void LearningData::insert_or_update(PersistedLearningMove *plm, bool qLearning)
             //This is not thread safe, but it is fine since this code will never be called from multiple threads
             static LearningMove lm;
 
-            lm = *bestNewMoveCandidate;
+            lm                    = *bestNewMoveCandidate;
             *bestNewMoveCandidate = *currentBestMove;
-            *currentBestMove = lm;
+            *currentBestMove      = lm;
 
             //Flag for persisting
             needPersisting = true;
@@ -169,15 +171,15 @@ void LearningData::insert_or_update(PersistedLearningMove *plm, bool qLearning)
     }
 }
 
-LearningData::LearningData() : isPaused(false), isReadOnly(false), needPersisting(false), learningMode(LearningMode::Standard) {}
+LearningData::LearningData() :
+    isPaused(false),
+    isReadOnly(false),
+    needPersisting(false),
+    learningMode(LearningMode::Standard) {}
 
-LearningData::~LearningData()
-{
-    clear();
-}
+LearningData::~LearningData() { clear(); }
 
-void LearningData::clear()
-{
+void LearningData::clear() {
     //Clear hash table
     HT.clear();
 
@@ -193,14 +195,13 @@ void LearningData::clear()
         free(p);
 
     //Clear internal new moves data buffers
-    newMovesDataBuffers.clear();    
+    newMovesDataBuffers.clear();
 }
 
-void LearningData::init()
-{
-	clear();
+void LearningData::init() {
+    clear();
 
-    learningMode = identify_learning_mode((bool)Options["Self Q-learning"] ? "Self" : "Standard");
+    learningMode = identify_learning_mode((bool) Options["Self Q-learning"] ? "Self" : "Standard");
     if (learningMode == LearningMode::Off)
         return;
 
@@ -218,7 +219,7 @@ void LearningData::init()
     int i = 0;
     while (true)
     {
-        slaveFile = Utility::map_path("experience" + std::to_string(i) + ".exp");
+        slaveFile   = Utility::map_path("experience" + std::to_string(i) + ".exp");
         bool loaded = load(slaveFile);
         if (!loaded)
             break;
@@ -239,8 +240,7 @@ void LearningData::init()
     needPersisting = false;
 }
 
-void LearningData::set_learning_mode(const std::string& lm)
-{
+void LearningData::set_learning_mode(const std::string& lm) {
     LearningMode newLearningMode = identify_learning_mode(lm);
     if (newLearningMode == learningMode)
         return;
@@ -248,13 +248,9 @@ void LearningData::set_learning_mode(const std::string& lm)
     init();
 }
 
-LearningMode LearningData::learning_mode() const
-{
-    return learningMode;
-}
+LearningMode LearningData::learning_mode() const { return learningMode; }
 
-void LearningData::persist()
-{
+void LearningData::persist() {
     //Quick exit if we have nothing to persist
     if (HT.empty() || !needPersisting)
         return;
@@ -281,7 +277,7 @@ void LearningData::persist()
     std::string experienceFilename;
     std::string tempExperienceFilename;
 
-    if ((bool)Options["Concurrent Experience"])
+    if ((bool) Options["Concurrent Experience"])
     {
         static std::string uniqueStr;
 
@@ -295,12 +291,12 @@ void LearningData::persist()
             uniqueStr = ss.str();
         }
 
-        experienceFilename = Utility::map_path("experience-" + uniqueStr + ".exp");
+        experienceFilename     = Utility::map_path("experience-" + uniqueStr + ".exp");
         tempExperienceFilename = Utility::map_path("experience_new-" + uniqueStr + ".exp");
     }
     else
     {
-        experienceFilename = Utility::map_path("experience.exp");
+        experienceFilename     = Utility::map_path("experience.exp");
         tempExperienceFilename = Utility::map_path("experience_new.exp");
     }
 
@@ -308,13 +304,12 @@ void LearningData::persist()
     PersistedLearningMove persistedLearningMove;
     for (auto& kvp : HT)
     {
-        persistedLearningMove.key = kvp.first;
+        persistedLearningMove.key          = kvp.first;
         persistedLearningMove.learningMove = *kvp.second;
-        if(persistedLearningMove.learningMove.depth!=0)
+        if (persistedLearningMove.learningMove.depth != 0)
         {
-            outputFile.write((char*)&persistedLearningMove, sizeof(persistedLearningMove));
+            outputFile.write((char*) &persistedLearningMove, sizeof(persistedLearningMove));
         }
-
     }
     outputFile.close();
 
@@ -325,23 +320,17 @@ void LearningData::persist()
     needPersisting = false;
 }
 
-void LearningData::pause()
-{
-    isPaused = true;
-}
+void LearningData::pause() { isPaused = true; }
 
-void LearningData::resume()
-{
-    isPaused = false;
-}
+void LearningData::resume() { isPaused = false; }
 
-void LearningData::add_new_learning(Key key, const LearningMove& lm)
-{
+void LearningData::add_new_learning(Key key, const LearningMove& lm) {
     //Allocate buffer to read the entire file
-    PersistedLearningMove *newPlm = (PersistedLearningMove *)malloc(sizeof(PersistedLearningMove));
+    PersistedLearningMove* newPlm = (PersistedLearningMove*) malloc(sizeof(PersistedLearningMove));
     if (!newPlm)
     {
-        std::cerr << "info string Failed to allocate <" << sizeof(PersistedLearningMove) << "> bytes for new learning entry" << std::endl;
+        std::cerr << "info string Failed to allocate <" << sizeof(PersistedLearningMove)
+                  << "> bytes for new learning entry" << std::endl;
         return;
     }
 
@@ -349,15 +338,14 @@ void LearningData::add_new_learning(Key key, const LearningMove& lm)
     newMovesDataBuffers.push_back(newPlm);
 
     //Assign
-    newPlm->key = key;
+    newPlm->key          = key;
     newPlm->learningMove = lm;
 
     //Add to HT
     insert_or_update(newPlm, learningMode == LearningMode::Self);
 }
 
-int LearningData::probe(Key key, const LearningMove*& learningMove)
-{
+int LearningData::probe(Key key, const LearningMove*& learningMove) {
     auto range = HT.equal_range(key);
 
     if (range.first == range.second)
@@ -370,17 +358,14 @@ int LearningData::probe(Key key, const LearningMove*& learningMove)
     return std::distance(range.first, range.second);
 }
 
-const LearningMove* LearningData::probe_move(Key key, Move move)
-{
+const LearningMove* LearningData::probe_move(Key key, Move move) {
     auto range = HT.equal_range(key);
 
     if (range.first == range.second)
         return nullptr;
 
-    auto itr = std::find_if(
-        range.first,
-        range.second,
-        [&move](const auto &p) { return p.second->move == move; });
+    auto itr = std::find_if(range.first, range.second,
+                            [&move](const auto& p) { return p.second->move == move; });
 
     if (itr == range.second)
         return nullptr;
