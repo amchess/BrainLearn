@@ -89,12 +89,12 @@ about the codebase and how to improve it.
 
 The [Universal Chess Interface][uci-link] (UCI) is a standard text-based protocol
 used to communicate with a chess engine and is the recommended way to do so for
-typical graphical user interfaces (GUI) or chess tools. Stockfish implements the
+typical graphical user interfaces (GUI) or chess tools. Brainlearn implements the
 majority of its options.
 
-Developers can see the default values for the UCI options available in Stockfish
-by typing `./stockfish uci` in a terminal, but most users should typically use a
-chess GUI to interact with Stockfish.
+Developers can see the default values for the UCI options available in Brainlearn
+by typing `./brainlearn uci` in a terminal, but most users should typically use a
+chess GUI to interact with Brainlearn.
 
 For more information on UCI or debug commands, see our [documentation][wiki-commands-link].
 
@@ -104,7 +104,7 @@ For more information on UCI or debug commands, see our [documentation][wiki-comm
 
 BrainLearn hash the same options as BrainFish, but it implements a persisted learning algorithm, managing a file named experience.exp.
 
-It is a collection of one or more positions stored with the following format (similar to in memory Stockfish Transposition Table):
+It is a collection of one or more positions stored with the following format (similar to in memory Brainlearn Transposition Table):
 
 - _best move_
 - _board signature (hash key)_
@@ -114,7 +114,7 @@ It is a collection of one or more positions stored with the following format (si
 
 This file is loaded in an hashtable at the engine load and updated each time the engine receive quit or stop uci command.
 When BrainLearn starts a new game or when we have max 8 pieces on the chessboard, the learning is activated and the hash table updated each time the engine has a best score
-at a depth >= 4 PLIES, according to Stockfish aspiration window.
+at a depth >= 4 PLIES, according to Brainlearn aspiration window.
 
 At the engine loading, there is an automatic merge to experience.exp files, if we put the other ones, based on the following convention:
 
@@ -132,7 +132,7 @@ Because of disk access, less time the engine can think, less effective is the le
 Old versions had this experience file with a .bin extension, but now we added the bin book format support, so the extension is changed in .exp. So, old files can simply be renamed by changing this extension.
 
 #### Contempt
-The default value is 0 and keep it for analysis purpose. For game playing, you can use the default stockfish value 24
+The default value is 0 and keep it for analysis purpose. For game playing, you can use the default brainlearn value 24
 
 #### Dynamic contempt
 
@@ -200,7 +200,7 @@ Same explaination as **BIN Book 1 Depth**, but for the second book
 Same explaination as **(CTG) Book 1 Only Green**, but for the second book
 
 #### UCI commands
-Polyfish supports all UCI commands supported by Stockfish. *Click [here](https://github.com/official-stockfish/Stockfish/blob/master/README.md#the-uci-protocol-and-available-options) to see the full list of supported Stockfish UCI commands*
+Polyfish supports all UCI commands supported by Brainlearn. *Click [here](https://github.com/official-stockfish/Brainlearn/blob/master/README.md#the-uci-protocol-and-available-options) to see the full list of supported Brainlearn UCI commands*
 
 Polyfish also supports the following UCI commands
 
@@ -328,7 +328,7 @@ Converting pgn to brainlearn format is really simple.
 Requirements
 1. Download cuteChess gui
 2. Download brainlearn
-3. Download stockfish or equivalent
+3. Download brainlearn or equivalent
 3. Download the pgn files you want to convert
 
 In Cute Chess, set a tournament according to the photo in this link:
@@ -340,14 +340,14 @@ In Cute Chess, set a tournament according to the photo in this link:
 
 Note: We recommend you use games from high quality play.
 
-<h1 align="center">Stockfish NNUE</h1>
+<h1 align="center">Brainlearn NNUE</h1>
 
-## Compiling Stockfish
+## Compiling Brainlearn
 
-Stockfish has support for 32 or 64-bit CPUs, certain hardware instructions,
+Brainlearn has support for 32 or 64-bit CPUs, certain hardware instructions,
 big-endian machines such as Power PC, and other platforms.
 
-On Unix-like systems, it should be easy to compile Stockfish directly from the
+On Unix-like systems, it should be easy to compile Brainlearn directly from the
 source code with the included Makefile in the folder `src`. In general, it is
 recommended to run `make help` to see a list of make targets with corresponding
 descriptions. An example suitable for most Intel and AMD chips:
@@ -359,11 +359,11 @@ make -j profile-build ARCH=x86-64-avx2
 
 Detailed compilation instructions for all platforms can be found in our
 [documentation][wiki-compile-link]. Our wiki also has information about
-the [UCI commands][wiki-uci-link] supported by Stockfish.
+the [UCI commands][wiki-uci-link] supported by Brainlearn.
 
 ## Terms of use
 
-Stockfish is free and distributed under the
+Brainlearn is free and distributed under the
 [**GNU General Public License version 3**][license-link] (GPL v3). Essentially,
 this means you are free to do almost exactly what you want with the program,
 including distributing it among your friends, making it available for download
@@ -371,7 +371,7 @@ from your website, selling it (either by itself or as part of some bigger
 software package), or using it as the starting point for a software project of
 your own.
 
-The only real limitation is that whenever you distribute Stockfish in some way,
+The only real limitation is that whenever you distribute Brainlearn in some way,
 you MUST always include the license and the full source code (or a pointer to
 where the source code can be found) to generate the exact binary you are
 distributing. If you make any changes to the source code, these changes must

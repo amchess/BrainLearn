@@ -56,10 +56,10 @@ body:
 
 - type: input
   attributes:
-    label: Stockfish version
+    label: Brainlearn version
     description: |
       This can be found by running the engine.
       You can also use the commit ID.
-    placeholder: Stockfish 15 / e6e324e
+    placeholder: Brainlearn 15 / e6e324e
   validations:
     required: true

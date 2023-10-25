@@ -1,12 +1,12 @@
-# Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-# Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+# Brainlearn, a UCI chess playing engine derived from Brainlearn
+# Copyright (C) 2004-2023 Andrea Manzo, K.Kiniama and Brainlearn developers (see AUTHORS file)
 #
-# Stockfish is free software: you can redistribute it and/or modify
+# Brainlearn is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# Stockfish is distributed in the hope that it will be useful,
+# Brainlearn is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
@@ -20,9 +20,9 @@
 ### ==========================================================================
 
 ### Establish the operating system name
-KERNEL = $(shell uname -s)
+KERNEL := $(shell uname -s)
 ifeq ($(KERNEL),Linux)
-	OS = $(shell uname -o)
+	OS := $(shell uname -o)
 endif
 
 ### Target Windows OS
@@ -33,15 +33,15 @@ ifeq ($(OS),Windows_NT)
 else ifeq ($(COMP),mingw)
 	target_windows = yes
 	ifeq ($(WINE_PATH),)
-		WINE_PATH = $(shell which wine)
+		WINE_PATH := $(shell which wine)
 	endif
 endif
 
 ### Executable name
 ifeq ($(target_windows),yes)
-	EXE = stockfish.exe
+	EXE = brainlearn.exe
 else
-	EXE = stockfish
+	EXE = brainlearn
 endif
 
 ### Installation dir definitions
@@ -59,6 +59,14 @@ SRCS = benchmark.cpp bitboard.cpp evaluate.cpp main.cpp \
 	book/book.cpp book/polyglot/polyglot.cpp book/ctg/ctg.cpp \
 	nnue/evaluate_nnue.cpp nnue/features/half_ka_v2_hm.cpp
 
+HEADERS = benchmark.h bitboard.h evaluate.h misc.h movegen.h movepick.h \
+		nnue/evaluate_nnue.h nnue/features/half_ka_v2_hm.h nnue/layers/affine_transform.h \
+		nnue/layers/affine_transform_sparse_input.h nnue/layers/clipped_relu.h nnue/layers/simd.h \
+		nnue/layers/sqr_clipped_relu.h nnue/nnue_accumulator.h nnue/nnue_architecture.h \
+		nnue/nnue_common.h nnue/nnue_feature_transformer.h position.h \
+		search.h syzygy/tbprobe.h thread.h thread_win32_osx.h timeman.h \
+		tt.h tune.h types.h uci.h \
+		book/book.h book/ctg/ctg.h book/polyglot/polyglot.h learn.h mcts/montecarlo.h
 OBJS = $(notdir $(SRCS:.cpp=.o))
 
 VPATH = mcts:syzygy:nnue:nnue/features:book:book/polyglot:book/ctg
@@ -110,7 +118,7 @@ ifeq ($(ARCH),)
 endif
 
 ifeq ($(ARCH), native)
-   override ARCH = $(shell $(SHELL) ../scripts/get_native_properties.sh | cut -d " " -f 1)
+   override ARCH := $(shell $(SHELL) ../scripts/get_native_properties.sh | cut -d " " -f 1)
 endif
 
 # explicitly check for the list of supported architectures (as listed with make help),
@@ -146,6 +154,12 @@ neon = no
 dotprod = no
 arm_version = 0
 STRIP = strip
+
+ifneq ($(shell which clang-format-17 2> /dev/null),)
+	CLANG-FORMAT = clang-format-17
+else
+	CLANG-FORMAT = clang-format
+endif
 
 ### 2.2 Architecture specific
 
@@ -539,8 +553,8 @@ endif
 
 ### Sometimes gcc is really clang
 ifeq ($(COMP),gcc)
-	gccversion = $(shell $(CXX) --version 2>/dev/null)
-	gccisclang = $(findstring clang,$(gccversion))
+	gccversion := $(shell $(CXX) --version 2>/dev/null)
+	gccisclang := $(findstring clang,$(gccversion))
 	ifneq ($(gccisclang),)
 		profile_make = clang-profile-make
 		profile_use = clang-profile-use
@@ -598,7 +612,7 @@ ifeq ($(optimize),yes)
 	endif
 
 	ifeq ($(comp),clang)
-		clangmajorversion = $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
+		clangmajorversion := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
 		ifeq ($(shell expr $(clangmajorversion) \< 16),1)
 			CXXFLAGS += -fexperimental-new-pass-manager
 		endif
@@ -714,13 +728,13 @@ ifeq ($(pext),yes)
 endif
 
 ### 3.8.1 Try to include git commit sha for versioning
-GIT_SHA = $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8)
+GIT_SHA := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8)
 ifneq ($(GIT_SHA), )
 	CXXFLAGS += -DGIT_SHA=$(GIT_SHA)
 endif
 
 ### 3.8.2 Try to include git commit date for versioning
-GIT_DATE = $(shell git show -s --date=format:'%Y%m%d' --format=%cd HEAD 2>/dev/null)
+GIT_DATE := $(shell git show -s --date=format:'%Y%m%d' --format=%cd HEAD 2>/dev/null)
 ifneq ($(GIT_DATE), )
 	CXXFLAGS += -DGIT_DATE=$(GIT_DATE)
 endif
@@ -778,7 +792,7 @@ endif
 
 help:
 	@echo ""
-	@echo "To compile stockfish, type: "
+	@echo "To compile brainlearn, type: "
 	@echo ""
 	@echo "make -j target [ARCH=arch] [COMP=compiler] [COMPCXX=cxx]"
 	@echo ""
@@ -851,7 +865,8 @@ endif
 	objclean profileclean config-sanity \
 	icx-profile-use icx-profile-make \
 	gcc-profile-use gcc-profile-make \
-	clang-profile-use clang-profile-make FORCE
+	clang-profile-use clang-profile-make FORCE \
+	format analyze
 
 analyze: net config-sanity objclean
 	$(MAKE) -k ARCH=$(ARCH) COMP=$(COMP) $(OBJS)
@@ -889,16 +904,16 @@ clean: objclean profileclean
 
 # clean binaries and objects
 objclean:
-	@rm -f stockfish stockfish.exe *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o ./mcts/*.o ./book/*.o ./book/polyglot/*.o ./book/ctg/*.o
+	@rm -f brainlearn brainlearn.exe *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o
 
 # clean auxiliary profiling files
 profileclean:
 	@rm -rf profdir
-	@rm -f bench.txt *.gcda *.gcno ./syzygy/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda ./book/*.gcda ./book/polyglot/*.gcda ./book/ctg/*.gcda *.s PGOBENCH.out 
-	@rm -f stockfish.profdata *.profraw
-	@rm -f stockfish.*args*
-	@rm -f stockfish.*lt*
-	@rm -f stockfish.res
+	@rm -f bench.txt *.gcda *.gcno ./syzygy/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
+	@rm -f brainlearn.profdata *.profraw
+	@rm -f brainlearn.*args*
+	@rm -f brainlearn.*lt*
+	@rm -f brainlearn.res
 	@rm -f ./-lstdc++.res
 
 # set up shell variables for the net stuff
@@ -946,6 +961,9 @@ net: netvariables
 			echo "Network validated"; break; \
 		fi; \
 	fi; \
+
+format:
+	$(CLANG-FORMAT) -i $(SRCS) $(HEADERS) -style=file
 
 # default target
 default:
@@ -1029,9 +1047,9 @@ clang-profile-make:
 	all
 
 clang-profile-use:
-	$(XCRUN) llvm-profdata merge -output=stockfish.profdata *.profraw
+	$(XCRUN) llvm-profdata merge -output=brainlearn.profdata *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-instr-use=stockfish.profdata' \
+	EXTRACXXFLAGS='-fprofile-instr-use=brainlearn.profdata' \
 	EXTRALDFLAGS='-fprofile-use ' \
 	all
 
@@ -1057,9 +1075,9 @@ icx-profile-make:
 	all
 
 icx-profile-use:
-	$(XCRUN) llvm-profdata merge -output=stockfish.profdata *.profraw
+	$(XCRUN) llvm-profdata merge -output=brainlearn.profdata *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-instr-use=stockfish.profdata' \
+	EXTRACXXFLAGS='-fprofile-instr-use=brainlearn.profdata' \
 	EXTRALDFLAGS='-fprofile-use ' \
 	all
 

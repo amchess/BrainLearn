@@ -39,16 +39,16 @@ case $1 in
     threads="2"
 
 cat << EOF > tsan.supp
-race:Stockfish::TTEntry::move
-race:Stockfish::TTEntry::depth
-race:Stockfish::TTEntry::bound
-race:Stockfish::TTEntry::save
-race:Stockfish::TTEntry::value
-race:Stockfish::TTEntry::eval
-race:Stockfish::TTEntry::is_pv
+race:Brainlearn::TTEntry::move
+race:Brainlearn::TTEntry::depth
+race:Brainlearn::TTEntry::bound
+race:Brainlearn::TTEntry::save
+race:Brainlearn::TTEntry::value
+race:Brainlearn::TTEntry::eval
+race:Brainlearn::TTEntry::is_pv
 
-race:Stockfish::TranspositionTable::probe
-race:Stockfish::TranspositionTable::hashfull
+race:Brainlearn::TranspositionTable::probe
+race:Brainlearn::TranspositionTable::hashfull
 
 EOF
 
@@ -92,20 +92,20 @@ for args in "eval" \
             "uci"
 do
 
-   echo "$prefix $exeprefix ./stockfish $args $postfix"
-   eval "$prefix $exeprefix ./stockfish $args $postfix"
+   echo "$prefix $exeprefix ./brainlearn $args $postfix"
+   eval "$prefix $exeprefix ./brainlearn $args $postfix"
 
 done
 
 # verify the generated net equals the base net
-network=`./stockfish uci | grep 'option name EvalFile type string default' | awk '{print $NF}'`
+network=`./brainlearn uci | grep 'option name EvalFile type string default' | awk '{print $NF}'`
 echo "Comparing $network to the written verify.nnue"
 diff $network verify.nnue
 
 # more general testing, following an uci protocol exchange
 cat << EOF > game.exp
  set timeout 240
- spawn $exeprefix ./stockfish
+ spawn $exeprefix ./brainlearn
 
  send "uci\n"
  expect "uciok"
@@ -164,7 +164,7 @@ fi
 
 cat << EOF > syzygy.exp
  set timeout 240
- spawn $exeprefix ./stockfish
+ spawn $exeprefix ./brainlearn
  send "uci\n"
  send "setoption name SyzygyPath value ../tests/syzygy/\n"
  expect "info string Found 35 tablebases" {} timeout {exit 1}

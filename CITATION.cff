@@ -2,17 +2,17 @@
 # Visit https://bit.ly/cffinit to generate yours today!
 
 cff-version: 1.2.0
-title: Stockfish
+title: Brainlearn
 message: >-
   Please cite this software using the metadata from this
   file.
 type: software
 authors:
-  - name: The Stockfish developers (see AUTHORS file)
-repository-code: 'https://github.com/official-stockfish/Stockfish'
-url: 'https://stockfishchess.org/'
-repository-artifact: 'https://stockfishchess.org/download/'
-abstract: Stockfish is a free and strong UCI chess engine.
+  - name: The Brainlearn developers (see AUTHORS file)
+repository-code: 'https://github.com/official-brainlearn/Brainlearn'
+url: 'https://brainlearnchess.org/'
+repository-artifact: 'https://brainlearnchess.org/download/'
+abstract: Brainlearn is a free and strong UCI chess engine.
 keywords:
   - chess
   - artificial intelligence (AI)

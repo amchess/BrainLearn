@@ -3,7 +3,7 @@
 # executes no shell script nor runs make.
 # Read this before editing: https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
 
-name: Stockfish
+name: Brainlearn
 on:
   pull_request_target:
     branches:
@@ -12,7 +12,7 @@ on:
       - '**.cpp'
       - '**.h'
 jobs:
-  Stockfish:
+  Brainlearn:
     name: clang-format check
     runs-on: ubuntu-20.04
     steps:
