@@ -47,8 +47,8 @@ extern void putGameLineIntoLearningTable();
 struct StateInfo {
 
     // Copied when making a move
-    Key    pawnKey;  //mcts
     Key    materialKey;
+    Key    pawnKey;
     Value  nonPawnMaterial[COLOR_NB];
     int    castlingRights;
     int    rule50;
@@ -156,7 +156,7 @@ class Position {
     Key key() const;
     Key key_after(Move m) const;
     Key material_key() const;
-    Key pawn_key() const;  //mcts
+    Key pawn_key() const;
 
     // Other properties of the position
     Color   side_to_move() const;
@@ -303,9 +303,9 @@ template<bool AfterMove>
 inline Key Position::adjust_key50(Key k) const {
     return st->rule50 < 14 - AfterMove ? k : k ^ make_key((st->rule50 - (14 - AfterMove)) / 8);
 }
-////mcts begin
+
 inline Key Position::pawn_key() const { return st->pawnKey; }
-//mcts end
+
 inline Key Position::material_key() const { return st->materialKey; }
 
 inline Value Position::non_pawn_material(Color c) const { return st->nonPawnMaterial[c]; }
