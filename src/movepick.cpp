@@ -89,12 +89,14 @@ MovePicker::MovePicker(const Position&              p,
                        const ButterflyHistory*      mh,
                        const CapturePieceToHistory* cph,
                        const PieceToHistory**       ch,
+                       const PawnHistory*           ph,
                        Move                         cm,
                        const Move*                  killers) :
     pos(p),
     mainHistory(mh),
     captureHistory(cph),
     continuationHistory(ch),
+    pawnHistory(ph),
     ttMove(ttm),
     refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}},
     depth(d) {
@@ -110,11 +112,13 @@ MovePicker::MovePicker(const Position&              p,
                        const ButterflyHistory*      mh,
                        const CapturePieceToHistory* cph,
                        const PieceToHistory**       ch,
+                       const PawnHistory*           ph,
                        Square                       rs) :
     pos(p),
     mainHistory(mh),
     captureHistory(cph),
     continuationHistory(ch),
+    pawnHistory(ph),
     ttMove(ttm),
     recaptureSquare(rs),
     depth(d) {
@@ -177,6 +181,7 @@ void MovePicker::score() {
 
             // histories
             m.value = 2 * (*mainHistory)[pos.side_to_move()][from_to(m)];
+            m.value += 2 * (*pawnHistory)[pawn_structure(pos)][pc][to];
             m.value += 2 * (*continuationHistory[0])[pc][to];
             m.value += (*continuationHistory[1])[pc][to];
             m.value += (*continuationHistory[2])[pc][to] / 4;
@@ -212,7 +217,8 @@ void MovePicker::score() {
                         + (1 << 28);
             else
                 m.value = (*mainHistory)[pos.side_to_move()][from_to(m)]
-                        + (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)];
+                        + (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
+                        + (*pawnHistory)[pawn_structure(pos)][pos.moved_piece(m)][to_sq(m)];
         }
 }
 
@@ -296,7 +302,7 @@ top:
             endMoves = generate<QUIETS>(pos, cur);
 
             score<QUIETS>();
-            partial_insertion_sort(cur, endMoves, -3000 * depth);
+            partial_insertion_sort(cur, endMoves, -1960 - 3130 * depth);
         }
 
         ++stage;

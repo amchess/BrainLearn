@@ -126,7 +126,7 @@ void NNUE::verify() {
         std::string msg3 = "The UCI option EvalFile might need to specify the full path, "
                            "including the directory name, to the network file.";
         std::string msg4 = "The default net can be downloaded from: "
-                           "https://tests.brainlearnchess.org/api/nn/"
+                           "https://tests.stockfishchess.org/api/nn/"
                          + std::string(EvalFileDefaultName);
         std::string msg5 = "The engine will be terminated now.";
 
@@ -144,8 +144,8 @@ void NNUE::verify() {
 }
 
 
-// Returns a static, purely materialistic evaluation of the position
-// from the point of view of the given color. It can be divided by PawnValue to get
+// Returns a static, purely materialistic evaluation of the position from
+// the point of view of the given color. It can be divided by PawnValue to get
 // an approximation of the material advantage on the board in terms of pawns.
 Value Eval::simple_eval(const Position& pos, Color c) {
     return PawnValue * (pos.count<PAWN>(c) - pos.count<PAWN>(~c))
