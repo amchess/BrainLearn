@@ -79,7 +79,7 @@ namespace Brainlearn {
 namespace {
 
 // Version number or dev.
-constexpr std::string_view version = "26.2";
+constexpr std::string_view version = "26.3";
 
 // Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 // cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
@@ -152,7 +152,7 @@ class Logger {
 }  // namespace
 
 
-// engine_info() returns the full name of the current Brainlearn version.
+// Returns the full name of the current Brainlearn version.
 // For local dev compiles we try to append the commit sha and commit date
 // from git if that fails only the local compilation date is set and "nogit" is specified:
 // Brainlearn dev-YYYYMMDD-SHA
@@ -398,8 +398,8 @@ void dbg_print() {
 }
 
 
-// Used to serialize access to std::cout to avoid multiple threads writing at
-// the same time.
+// Used to serialize access to std::cout
+// to avoid multiple threads writing at the same time.
 std::ostream& operator<<(std::ostream& os, SyncCout sc) {
 
     static std::mutex m;
@@ -563,7 +563,7 @@ void* aligned_large_pages_alloc(size_t allocSize) {
     constexpr size_t alignment = 4096;  // assumed small page size
     #endif
 
-    // round up to multiples of alignment
+    // Round up to multiples of alignment
     size_t size = ((allocSize + alignment - 1) / alignment) * alignment;
     void*  mem  = std_aligned_alloc(alignment, size);
     #if defined(MADV_HUGEPAGE)
@@ -605,7 +605,7 @@ void bindThisThread(size_t) {}
 
 #else
 
-// Retrieves logical processor information using Windows specific
+// Retrieves logical processor information using Windows-specific
 // API and returns the best node id for the thread with index idx. Original
 // code from Texel by Peter Österlund.
 static int best_node(size_t idx) {
@@ -665,8 +665,7 @@ static int best_node(size_t idx) {
             groups.push_back(n);
 
     // In case a core has more than one logical processor (we assume 2) and we
-    // have still threads to allocate, then spread them evenly across available
-    // nodes.
+    // still have threads to allocate, spread them evenly across available nodes.
     for (int t = 0; t < threads - cores; t++)
         groups.push_back(t % nodes);
 
@@ -736,7 +735,7 @@ std::string workingDirectory;  // path of the working directory
 void init([[maybe_unused]] int argc, char* argv[]) {
     std::string pathSeparator;
 
-    // extract the path+name of the executable binary
+    // Extract the path+name of the executable binary
     argv0 = argv[0];
 
 #ifdef _WIN32
@@ -752,14 +751,14 @@ void init([[maybe_unused]] int argc, char* argv[]) {
     pathSeparator = "/";
 #endif
 
-    // extract the working directory
+    // Extract the working directory
     workingDirectory = "";
     char  buff[40000];
     char* cwd = GETCWD(buff, 40000);
     if (cwd)
         workingDirectory = cwd;
 
-    // extract the binary directory path from argv0
+    // Extract the binary directory path from argv0
     binaryDirectory = argv0;
     size_t pos      = binaryDirectory.find_last_of("\\/");
     if (pos == std::string::npos)
@@ -767,7 +766,7 @@ void init([[maybe_unused]] int argc, char* argv[]) {
     else
         binaryDirectory.resize(pos + 1);
 
-    // pattern replacement: "./" at the start of path is replaced by the working directory
+    // Pattern replacement: "./" at the start of path is replaced by the working directory
     if (binaryDirectory.find("." + pathSeparator) == 0)
         binaryDirectory.replace(0, 1, workingDirectory);
 }

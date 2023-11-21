@@ -97,7 +97,7 @@ enum NodeType {
 
 // Futility margin
 Value futility_margin(Depth d, bool noTtCutNode, bool improving) {
-    return Value((126 - 42 * noTtCutNode) * (d - improving));
+    return Value((125 - 43 * noTtCutNode) * (d - improving));
 }
 
 // Reductions lookup table initialized at startup
@@ -284,6 +284,10 @@ inline Value static_value(Position& pos, Stack* ss) {
     if (MoveList<LEGAL>(pos).size() == 0)
         return pos.checkers() ? VALUE_MATE : VALUE_DRAW;
 
+    //Should not call evaluate() if the side to move is under check!
+    if (pos.checkers())
+        return VALUE_DRAW; //TODO: Not sure if VALUE_DRAW is correct!
+
     // Evaluate the position statically
     return evaluate(pos);
 }
@@ -434,6 +438,7 @@ void MainThread::search() {
     bestPreviousScore        = bestThread->rootMoves[0].score;
     bestPreviousAverageScore = bestThread->rootMoves[0].averageScore;
 
+
     // kelly begin
     if (!bookMove)
     {
@@ -568,7 +573,7 @@ void Thread::search() {
     int searchAgainCounter = 0;
     // from mcts begin
     bool mcts      = (bool) Options["MCTS"];
-	isMCTS                      = false;
+	isMCTS         = false;
     if (mcts && (multiPV==1) && (!Threads.stop))
     { 
         if(!Utility::is_game_decided(rootPos, static_value(rootPos,ss)))
@@ -578,32 +583,11 @@ void Thread::search() {
             {
                 bool maybeDraw       = rootPos.rule50_count() >= 90 || rootPos.has_game_cycle(2);
                 mctsThreads    = Options["MCTSThreads"];
-                mctsGoldDigger = Options["MCTSGoldDigger"];
-	            Value rootPosValue = (Value) (std::abs(int(static_value(rootPos, ss))));
-		    	bool possibleMCTSByValue    = false;
-				switch (mctsGoldDigger)
-	        	{
-			        case 1 :
-			            possibleMCTSByValue = rootPosValue >= HIGH_MCTS;
-			            break;
-			        case 2 :
-			            possibleMCTSByValue = rootPosValue >= HIGH_MIDDLE_MCTS;
-			            break;
-			        case 3 :
-			            possibleMCTSByValue = rootPosValue >= MIDDLE_MCTS;
-			            break;
-			        case 4 :
-			            possibleMCTSByValue = rootPosValue >= MIDDLE_LOW_MCTS;
-			            break;
-			        case 5 :
-			            possibleMCTSByValue = rootPosValue >= LOW_MCTS;
-			            break;
-			        case 6 :
-			            possibleMCTSByValue = rootPosValue >= MIN_MCTS;
-			            break;
-			        default :
-			            break;
-			    }
+	            Value rootPosValue = (Value) (int(static_value(rootPos, ss)));
+		    	bool possibleMCTSByValue    = ((rootPosValue>-LOW_MCTS) && (rootPosValue <= -MIN_MCTS)
+                                                ||
+                                               (rootPosValue<=-HIGH_MCTS)
+                                                );
 			    if ((!mainThread) && possibleMCTSByValue && (!maybeDraw))
 	            {
 	                isMCTS                 = true;
@@ -625,7 +609,11 @@ void Thread::search() {
 	                return;
 	            }
             }
-            Threads.main()->check_time(); 
+            else
+            {
+                return;
+            }
+            //Threads.main()->check_time();
         }
         else
         {
@@ -675,8 +663,8 @@ void Thread::search() {
             beta      = std::min(avg + delta, VALUE_INFINITE);
 
             // Adjust optimism based on root move's averageScore (~4 Elo)
-            optimism[us]  = 103 * (avg + 33) / (std::abs(avg + 34) + 119);
-            optimism[~us] = -116 * (avg + 40) / (std::abs(avg + 12) + 123);
+            optimism[us]  = 110 * avg / (std::abs(avg) + 121);
+            optimism[~us] = -optimism[us];
 
             // Start with a small aspiration window and, in the case of a fail
             // high/low, re-search with a bigger window until we don't fail
@@ -815,13 +803,17 @@ void Thread::search() {
 
     if (!mainThread)
         return;
-
     mainThread->previousTimeReduction = timeReduction;
-
     // If the skill level is enabled, swap the best PV line with the sub-optimal one
     if (skill.enabled())
         std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(),
                                            skill.best ? skill.best : skill.pick_best(multiPV)));
+    //from mcts begin    
+    if(mcts)
+    {
+        Threads.stop = true;
+    }
+    //from mcts end
 }
 
 
@@ -1529,6 +1521,12 @@ moves_loop:  // When in check, search starts here
             else if (PvNode && move == ttMove && move == ss->killers[0]
                      && (*contHist[0])[movedPiece][to_sq(move)] >= 4194)
                 extension = 1;
+
+            // Recapture extensions (~1 Elo)
+            else if (PvNode && move == ttMove && to_sq(move) == prevSq
+                     && captureHistory[movedPiece][to_sq(move)][type_of(pos.piece_on(to_sq(move)))]
+                          > 4000)
+                extension = 1;
         }
 
         // Add extension to new depth
@@ -1602,7 +1600,9 @@ moves_loop:  // When in check, search starts here
             // In general we want to cap the LMR depth search at newDepth, but when
             // reduction is negative, we allow this move a limited search extension
             // beyond the first move depth. This may lead to hidden double extensions.
-            Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
+            // To prevent problems when the max value is less than the min value,
+            // std::clamp has been replaced by a more robust implementation.
+            Depth d = std::max(1, std::min(newDepth - r, newDepth + 1));
 
             value = -search<NonPV>(pos, ss + 1, -(alpha + 1), -alpha, d, true);
 
