@@ -102,7 +102,7 @@ void init(OptionsMap& o) {
     o["UCI_AnalyseMode"] << Option(false);
     o["UCI_LimitStrength"] << Option(false);
     o["UCI_Elo"] << Option(1320, 1320, 3190);
-    o["UCI_ShowWDL"] << Option(false);
+    o["UCI_ShowWDL"] << Option(true);
     o["SyzygyPath"] << Option("<empty>", on_tb_path);
     o["SyzygyProbeDepth"] << Option(1, 1, 100);
     o["Syzygy50MoveRule"] << Option(true);
@@ -115,7 +115,6 @@ void init(OptionsMap& o) {
     //From MCTS begin
     o["MCTS"] << Option(false);
     o["MCTSThreads"] << Option(1, 1, 512);
-    o["MCTSGoldDigger"] << Option(1, 1, 6);
     o["MCTS Multi Strategy"] << Option(20, 0, 100);
     o["MCTS Multi MinVisits"] << Option(5, 0, 1000);
     //From MCTS end
