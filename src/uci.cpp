@@ -347,7 +347,7 @@ void UCI::loop(int argc, char* argv[]) {
         else if (token == "position")
             position(pos, is, states);
         else if (token == "ucinewgame")
-         //Kelly and Khalid begin
+        //Kelly and Khalid begin
         {
             if (LD.is_enabled())
             {

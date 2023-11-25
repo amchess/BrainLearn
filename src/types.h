@@ -179,16 +179,19 @@ enum Value : int {
     // In the code, we make the assumption that these values
     // are such that non_pawn_material() can be used to uniquely
     // identify the material on the board.
-    PawnValue   = 208,
-    KnightValue = 781,
-    BishopValue = 825,
-    RookValue   = 1276,
-    QueenValue  = 2538,
-    //for mcts begin
-    HIGH_MCTS        = 454,
-    LOW_MCTS         = 310,
-    MIN_MCTS         = 25
-    //for mcts end
+    PawnValue        = 208,
+    KnightValue      = 781,
+    BishopValue      = 825,
+    RookValue        = 1276,
+    QueenValue       = 2538,
+    //from mcts begin
+    //HIGH_MCTS        =454,
+    //HIGH_MIDDLE_MCTS =400,
+    MIDDLE_MCTS      =378,
+    //MIDDLE_LOW_MCTS  =336,
+    //LOW_MCTS         =310,
+    //MIN_MCTS         =25
+    //from mcts end
 };
 
 // clang-format off

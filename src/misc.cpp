@@ -79,7 +79,7 @@ namespace Brainlearn {
 namespace {
 
 // Version number or dev.
-constexpr std::string_view version = "26.3";
+constexpr std::string_view version = "26.4";
 
 // Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 // cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
@@ -190,7 +190,8 @@ std::string engine_info(bool to_uci) {
 #endif
     }
 
-    ss << (to_uci ? "\nid author " : " by ") << "K. Kiniama, A. Manzo and the Brainlearn developers (see AUTHORS file)";
+    ss << (to_uci ? "\nid author " : " by ")
+       << "K. Kiniama, A. Manzo and the Brainlearn developers (see AUTHORS file)";
 
     return ss.str();
 }
@@ -774,170 +775,156 @@ void init([[maybe_unused]] int argc, char* argv[]) {
 
 }  // namespace CommandLine
 //book mangement and learning begin
-namespace Utility
-{
-    //begin learning from Khalid
-    std::string myFolder;
+namespace Utility {
+//begin learning from Khalid
+std::string myFolder;
 
-    void init(const char* arg0)
-    {
-        std::string s = arg0;
-        size_t i = s.find_last_of(DirectorySeparator);
-        if(i != std::string::npos)
-            myFolder = s.substr(0, i);
-    }
-    //end learning from Khalid    
-    std::string unquote(const std::string& s)
-    {
-        std::string s1 = s;
+void init(const char* arg0) {
+    std::string s = arg0;
+    size_t      i = s.find_last_of(DirectorySeparator);
+    if (i != std::string::npos)
+        myFolder = s.substr(0, i);
+}
+//end learning from Khalid
+std::string unquote(const std::string& s) {
+    std::string s1 = s;
 
-        if (s1.size() > 2)
+    if (s1.size() > 2)
+    {
+        if ((s1.front() == '\"' && s1.back() == '\"') || (s1.front() == '\'' && s1.back() == '\''))
         {
-            if ((s1.front() == '\"' && s1.back() == '\"') || (s1.front() == '\'' && s1.back() == '\''))
-            {
-                s1 = s1.substr(1, s1.size() - 2);
-            }
+            s1 = s1.substr(1, s1.size() - 2);
         }
-
-        return s1;
     }
 
-    bool is_empty_filename(const std::string &fn)
-    {
-        if (fn.empty())
-            return true;
+    return s1;
+}
 
-        static std::string Empty = EMPTY;
-        return equal(
-            fn.begin(), fn.end(),
-            Empty.begin(), Empty.end(),
-            [](char a, char b) { return tolower(a) == tolower(b); });
-    }
+bool is_empty_filename(const std::string& fn) {
+    if (fn.empty())
+        return true;
 
-    std::string fix_path(const std::string& p)
-    {
-        if (is_empty_filename(p))
-            return p;
+    static std::string Empty = EMPTY;
+    return equal(fn.begin(), fn.end(), Empty.begin(), Empty.end(),
+                 [](char a, char b) { return tolower(a) == tolower(b); });
+}
 
-        std::string p1 = unquote(p);
-        replace(p1.begin(), p1.end(), ReverseDirectorySeparator, DirectorySeparator);
+std::string fix_path(const std::string& p) {
+    if (is_empty_filename(p))
+        return p;
 
-        return p1;
-    }
+    std::string p1 = unquote(p);
+    replace(p1.begin(), p1.end(), ReverseDirectorySeparator, DirectorySeparator);
 
-    std::string combine_path(const std::string& p1, const std::string& p2)
-    {
-        //We don't expect the first part of the path to be empty!
-        assert(is_empty_filename(p1) == false);
+    return p1;
+}
 
-        if (is_empty_filename(p2))
-            return p2;
+std::string combine_path(const std::string& p1, const std::string& p2) {
+    //We don't expect the first part of the path to be empty!
+    assert(is_empty_filename(p1) == false);
 
-        std::string p;
-        if (p1.back() == DirectorySeparator || p1.back() == ReverseDirectorySeparator)
-            p = p1 + p2;
-        else
-            p = p1 + DirectorySeparator + p2;
-
-        return fix_path(p);
-    }
-
-    std::string map_path(const std::string& p)
-    {
-        if (is_empty_filename(p))
-            return p;
-
-        std::string p2 = fix_path(p);
-
-        //Make sure we can map this path
-        if (p2.find(DirectorySeparator) == std::string::npos)
-            p2 = combine_path(CommandLine::binaryDirectory, p);
-
+    if (is_empty_filename(p2))
         return p2;
-    }
 
-    size_t get_file_size(const std::string& f)
-    {
-        if(is_empty_filename(f))
-            return (size_t)-1;
+    std::string p;
+    if (p1.back() == DirectorySeparator || p1.back() == ReverseDirectorySeparator)
+        p = p1 + p2;
+    else
+        p = p1 + DirectorySeparator + p2;
 
-        std::ifstream in(map_path(f), std::ifstream::ate | std::ifstream::binary);
-        if (!in.is_open())
-            return (size_t)-1;
+    return fix_path(p);
+}
 
-        return (size_t)in.tellg();
-    }
+std::string map_path(const std::string& p) {
+    if (is_empty_filename(p))
+        return p;
 
-    bool is_same_file(const std::string& f1, const std::string& f2)
-    {
-        return map_path(f1) == map_path(f2);
-    }
+    std::string p2 = fix_path(p);
 
-    std::string format_bytes(uint64_t bytes, int decimals)
-    {
-        static const uint64_t KB = 1024;
-        static const uint64_t MB = KB * 1024;
-        static const uint64_t GB = MB * 1024;
-        static const uint64_t TB = GB * 1024;
+    //Make sure we can map this path
+    if (p2.find(DirectorySeparator) == std::string::npos)
+        p2 = combine_path(CommandLine::binaryDirectory, p);
 
-        std::stringstream ss;
+    return p2;
+}
 
-        if (bytes < KB)
-            ss << bytes << " B";
-        else if (bytes < MB)
-            ss << std::fixed << std::setprecision(decimals) << ((double)bytes / KB) << "KB";
-        else if (bytes < GB)
-            ss << std::fixed << std::setprecision(decimals) << ((double)bytes / MB) << "MB";
-        else if (bytes < TB)
-            ss << std::fixed << std::setprecision(decimals) << ((double)bytes / GB) << "GB";
-        else
-            ss << std::fixed << std::setprecision(decimals) << ((double)bytes / TB) << "TB";
+size_t get_file_size(const std::string& f) {
+    if (is_empty_filename(f))
+        return (size_t) -1;
 
-        return ss.str();
-    }
+    std::ifstream in(map_path(f), std::ifstream::ate | std::ifstream::binary);
+    if (!in.is_open())
+        return (size_t) -1;
 
-    //Code is an `edited` version of: https://stackoverflow.com/a/49812018
-    std::string format_string(const char* const fmt, ...)
-    {
-        //Initialize use of the variable arguments
-        va_list vaArgs;
-        va_start(vaArgs, fmt);
+    return (size_t) in.tellg();
+}
 
-        //Acquire the required string size
-        va_start(vaArgs, fmt);
-        int len = vsnprintf(nullptr, 0, fmt, vaArgs);
-        va_end(vaArgs);
+bool is_same_file(const std::string& f1, const std::string& f2) {
+    return map_path(f1) == map_path(f2);
+}
 
-        
-        //Allocate enough buffer and format
-        std::vector<char> v(len + 1);
-        
-        va_start(vaArgs, fmt);
-        vsnprintf(v.data(), v.size(), fmt, vaArgs);
-        va_end(vaArgs);
+std::string format_bytes(uint64_t bytes, int decimals) {
+    static const uint64_t KB = 1024;
+    static const uint64_t MB = KB * 1024;
+    static const uint64_t GB = MB * 1024;
+    static const uint64_t TB = GB * 1024;
 
-        return std::string(v.data(), len);
-    }        
-    bool is_game_decided(const Position& pos, Value lastScore)
-    {
-        static constexpr const Value DecidedGameEvalThreeshold = PawnValue * 5;
-        static constexpr const int DecidedGameMaxPly = 150;
-        static constexpr const int DecidedGameMaxPieceCount = 5;
+    std::stringstream ss;
 
-        //Assume game is decided if |last sent score| is above DecidedGameEvalThreeshold
-        if (lastScore != VALUE_NONE && std::abs(lastScore) > DecidedGameEvalThreeshold)
-            return true;
+    if (bytes < KB)
+        ss << bytes << " B";
+    else if (bytes < MB)
+        ss << std::fixed << std::setprecision(decimals) << ((double) bytes / KB) << "KB";
+    else if (bytes < GB)
+        ss << std::fixed << std::setprecision(decimals) << ((double) bytes / MB) << "MB";
+    else if (bytes < TB)
+        ss << std::fixed << std::setprecision(decimals) << ((double) bytes / GB) << "GB";
+    else
+        ss << std::fixed << std::setprecision(decimals) << ((double) bytes / TB) << "TB";
 
-        //Assume game is decided (draw) if game ply is above 150
-        if (pos.game_ply() > DecidedGameMaxPly)
-            return true;
+    return ss.str();
+}
 
-        if (pos.count<ALL_PIECES>() < DecidedGameMaxPieceCount)
-            return true;
+//Code is an `edited` version of: https://stackoverflow.com/a/49812018
+std::string format_string(const char* const fmt, ...) {
+    //Initialize use of the variable arguments
+    va_list vaArgs;
+    va_start(vaArgs, fmt);
 
-        //Assume game is not decided!
-        return false;
-    }
+    //Acquire the required string size
+    va_start(vaArgs, fmt);
+    int len = vsnprintf(nullptr, 0, fmt, vaArgs);
+    va_end(vaArgs);
+
+
+    //Allocate enough buffer and format
+    std::vector<char> v(len + 1);
+
+    va_start(vaArgs, fmt);
+    vsnprintf(v.data(), v.size(), fmt, vaArgs);
+    va_end(vaArgs);
+
+    return std::string(v.data(), len);
+}
+bool is_game_decided(const Position& pos, Value lastScore) {
+    static constexpr const Value DecidedGameEvalThreeshold = PawnValue * 5;
+    static constexpr const int   DecidedGameMaxPly         = 150;
+    static constexpr const int   DecidedGameMaxPieceCount  = 5;
+
+    //Assume game is decided if |last sent score| is above DecidedGameEvalThreeshold
+    if (lastScore != VALUE_NONE && std::abs(lastScore) > DecidedGameEvalThreeshold)
+        return true;
+
+    //Assume game is decided (draw) if game ply is above 150
+    if (pos.game_ply() > DecidedGameMaxPly)
+        return true;
+
+    if (pos.count<ALL_PIECES>() < DecidedGameMaxPieceCount)
+        return true;
+
+    //Assume game is not decided!
+    return false;
+}
 }  // namespace Utility
 //Book management and learning end
 
