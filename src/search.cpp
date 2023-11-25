@@ -280,13 +280,13 @@ inline Value static_value(Position& pos, Stack* ss) {
     if (pos.is_draw(ss->ply) && !pos.checkers())
         return VALUE_DRAW;
 
-    // Detect mate and stalimate situations
+    // Detect mate and stalemate situations
     if (MoveList<LEGAL>(pos).size() == 0)
         return pos.checkers() ? VALUE_MATE : VALUE_DRAW;
 
     //Should not call evaluate() if the side to move is under check!
     if (pos.checkers())
-        return VALUE_DRAW; //TODO: Not sure if VALUE_DRAW is correct!
+        return VALUE_DRAW;  //TODO: Not sure if VALUE_DRAW is correct!
 
     // Evaluate the position statically
     return evaluate(pos);
@@ -400,6 +400,11 @@ void MainThread::search() {
 
         if (!bookMove || think)
         {
+            //Initialize `mctsThreads` threads only once before any thread have begun searching
+            mctsThreads        = size_t(int(Options["MCTSThreads"]));
+            mctsMultiStrategy  = size_t(int(Options["MCTS Multi Strategy"]));
+            mctsMultiMinVisits = double(int(Options["MCTS Multi MinVisits"]));
+
             Threads.start_searching();  // start non-main threads
             Thread::search();           // main thread start searching
         }
@@ -571,57 +576,45 @@ void Thread::search() {
     multiPV = std::min(multiPV, rootMoves.size());
 
     int searchAgainCounter = 0;
+
     // from mcts begin
-    bool mcts      = (bool) Options["MCTS"];
-	isMCTS         = false;
-    if (mcts && (multiPV==1) && (!Threads.stop))
-    { 
-        if(!Utility::is_game_decided(rootPos, static_value(rootPos,ss)))
+    optimism[WHITE] = optimism[BLACK] =
+      VALUE_ZERO;  //Must initialize optimism before calling static_value(). Not sure if 'VALUE_ZERO' is the right value
+
+    bool  maybeDraw    = rootPos.rule50_count() >= 90 || rootPos.has_game_cycle(2);
+    Value rootPosValue = static_value(rootPos, ss);
+    bool  possibleMCTSByValue = (rootPosValue <= -MIDDLE_MCTS);
+
+    if (!mainThread && bool(Options["MCTS"]) && multiPV == 1 && !maybeDraw && possibleMCTSByValue
+        && idx <= (size_t) (mctsThreads) && !Utility::is_game_decided(rootPos, rootPosValue))
+    {
+        MonteCarlo* monteCarlo = new MonteCarlo(rootPos);
+
+        if (monteCarlo)
         {
-            Threads.main()->check_time();
-            if((!(Threads.stop.load(std::memory_order_relaxed))))
-            {
-                bool maybeDraw       = rootPos.rule50_count() >= 90 || rootPos.has_game_cycle(2);
-                mctsThreads    = Options["MCTSThreads"];
-	            Value rootPosValue = (Value) (int(static_value(rootPos, ss)));
-		    	bool possibleMCTSByValue    = ((rootPosValue>-LOW_MCTS) && (rootPosValue <= -MIN_MCTS)
-                                                ||
-                                               (rootPosValue<=-HIGH_MCTS)
-                                                );
-			    if ((!mainThread) && possibleMCTSByValue && (!maybeDraw))
-	            {
-	                isMCTS                 = true;
-	                MonteCarlo* monteCarlo = new MonteCarlo(rootPos);
-	                if (!monteCarlo)
-	                {
-	                    std::cerr << IO_LOCK << "Could not allocate " << sizeof(MonteCarlo)
-	                            << " bytes for MonteCarlo search" << std::endl
-	                            << IO_UNLOCK;
-	                    ::exit(EXIT_FAILURE);
-	                }
-	        
-	                monteCarlo->search();
-	                if (idx == 1 && Limits.infinite && ((Threads.stop.load(std::memory_order_relaxed))))
-	                {
-	                    monteCarlo->print_children();
-	                }
-	                delete monteCarlo;
-	                return;
-	            }
-            }
-            else
-            {
-                return;
-            }
-            //Threads.main()->check_time();
-        }
-        else
-        {
-            isMCTS=false;
+#if !defined(NDEBUG) && !defined(_NDEBUG)
+            sync_cout << "info string *** Thread[" << idx << "] is running MCTS search"
+                      << sync_endl;
+#endif
+
+            monteCarlo->search();
+            if (idx == 1 && Limits.infinite && Threads.stop.load(std::memory_order_relaxed))
+                monteCarlo->print_children();
+
+            delete monteCarlo;
+
+#if !defined(NDEBUG) && !defined(_NDEBUG)
+            sync_cout << "info string *** Thread[" << idx << "] finished MCTS search" << sync_endl;
+#endif
+
+            return;
         }
     }
-    if(!isMCTS)
-    { 
+
+#if !defined(NDEBUG) && !defined(_NDEBUG)
+    sync_cout << "info string *** Thread[" << idx << "] is running A/B search" << sync_endl;
+#endif
+
     // from mcts end
     // Iterative deepening loop until requested to stop or the target depth is reached
     while (++rootDepth < MAX_PLY && !Threads.stop
@@ -676,7 +669,8 @@ void Thread::search() {
                 // for every four searchAgain steps (see issue #2717).
                 Depth adjustedDepth =
                   std::max(1, rootDepth - failedHighCnt - 3 * (searchAgainCounter + 1) / 4);
-                bestValue = Brainlearn::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
+                bestValue =
+                  Brainlearn::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
 
                 // Bring the best move to the front. It is critical that sorting
                 // is done with a stable algorithm because all the values but the
@@ -746,13 +740,13 @@ void Thread::search() {
         if (!mainThread)
             continue;
 
-            // from true handicap mode begin
-            /*
+        // from true handicap mode begin
+        /*
         // If the skill level is enabled and time is up, pick a sub-optimal best move
         if (skill.enabled() && skill.time_to_pick(rootDepth))
             skill.pick_best(multiPV);
       */
-            // from true handicap mode end
+        // from true handicap mode end
 
         // Use part of the gained time from a previous stable move for the current move
         for (Thread* th : Threads)
@@ -798,22 +792,21 @@ void Thread::search() {
 
         mainThread->iterValue[iterIdx] = bestValue;
         iterIdx                        = (iterIdx + 1) & 3;
-        }
     }
+
+#if !defined(NDEBUG) && !defined(_NDEBUG)
+    sync_cout << "info string *** Thread[" << idx << "] finished A/B search" << sync_endl;
+#endif
 
     if (!mainThread)
         return;
+
     mainThread->previousTimeReduction = timeReduction;
+
     // If the skill level is enabled, swap the best PV line with the sub-optimal one
     if (skill.enabled())
         std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(),
                                            skill.best ? skill.best : skill.pick_best(multiPV)));
-    //from mcts begin    
-    if(mcts)
-    {
-        Threads.stop = true;
-    }
-    //from mcts end
 }
 
 
@@ -857,9 +850,9 @@ Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, boo
                                      probCutBeta;
     bool givesCheck, improving, priorCapture, singularQuietLMR, expTTHit = false;
     //from Kelly End
-    bool     capture, moveCountPruning, ttCapture;
-    Piece    movedPiece;
-    int      moveCount, captureCount, quietCount;
+    bool  capture, moveCountPruning, ttCapture;
+    Piece movedPiece;
+    int   moveCount, captureCount, quietCount;
     // from Kelly begin
     bool updatedLearning = false;
     // flags to preserve node types
@@ -1169,15 +1162,14 @@ Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, boo
     // from Kelly begin
     if (!expectedPVNode)
     {
-    // Set up the improving flag, which is true if current static evaluation is
-    // bigger than the previous static evaluation at our turn (if we were in
-    // check at our previous move we look at static evaluation at move prior to it
-    // and if we were in check at move prior to it flag is set to true) and is
-    // false otherwise. The improving flag is used in various pruning heuristics.
-    improving = (ss - 2)->staticEval != VALUE_NONE ? ss->staticEval > (ss - 2)->staticEval
-              : (ss - 4)->staticEval != VALUE_NONE ? ss->staticEval > (ss - 4)->staticEval
-                                                   : true;
-
+        // Set up the improving flag, which is true if current static evaluation is
+        // bigger than the previous static evaluation at our turn (if we were in
+        // check at our previous move we look at static evaluation at move prior to it
+        // and if we were in check at move prior to it flag is set to true) and is
+        // false otherwise. The improving flag is used in various pruning heuristics.
+        improving = (ss - 2)->staticEval != VALUE_NONE ? ss->staticEval > (ss - 2)->staticEval
+                  : (ss - 4)->staticEval != VALUE_NONE ? ss->staticEval > (ss - 4)->staticEval
+                                                       : true;
     }
     // from Kelly end
     // Step 7. Razoring (~1 Elo)

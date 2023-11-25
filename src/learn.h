@@ -14,12 +14,12 @@ struct LearningMove {
     Brainlearn::Depth depth       = 0;
     Brainlearn::Value score       = Brainlearn::VALUE_NONE;
     Brainlearn::Move  move        = Brainlearn::MOVE_NONE;
-    int              performance = 100;
+    int               performance = 100;
 };
 
 struct PersistedLearningMove {
     Brainlearn::Key key;
-    LearningMove   learningMove;
+    LearningMove    learningMove;
 };
 
 class LearningData {
@@ -30,8 +30,8 @@ class LearningData {
     LearningMode learningMode;
 
     std::unordered_multimap<Brainlearn::Key, LearningMove*> HT;
-    std::vector<void*>                                     mainDataBuffers;
-    std::vector<void*>                                     newMovesDataBuffers;
+    std::vector<void*>                                      mainDataBuffers;
+    std::vector<void*>                                      newMovesDataBuffers;
 
    private:
     bool load(const std::string& filename);
