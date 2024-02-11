@@ -1,6 +1,6 @@
 /*
-  Brainlearn, a UCI chess playing engine derived from Brainlearn
-  Copyright (C) 2004-2023 Andrea Manzo, K.Kiniama and Brainlearn developers (see AUTHORS file)
+  Brainlearn, a UCI chess playing engine derived from Stockfish
+  Copyright (C) 2004-2024 Andrea Manzo, K.Kiniama and Brainlearn developers (see AUTHORS file)
 
   Brainlearn is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,40 +16,31 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cstddef>
 #include <iostream>
+#include <unordered_map>
 
 #include "bitboard.h"
 #include "evaluate.h"
 #include "misc.h"
 #include "position.h"
-#include "search.h"
-#include "thread.h"
 #include "tune.h"
 #include "types.h"
 #include "uci.h"
 #include "learn.h"      //learning
-#include "book/book.h"  //book
 using namespace Brainlearn;
 
 int main(int argc, char* argv[]) {
 
     std::cout << engine_info() << std::endl;
-
-    CommandLine::init(argc, argv);
-    Utility::init(argv[0]);  //Khalid
-    UCI::init(Options);
-    Tune::init();
-    LD.init();  //Kelly
+    UCI uci(argc, argv);     //Khalid
+    LD.init(uci.options);     //Kelly
     Bitboards::init();
     Position::init();
-    Threads.set(size_t(Options["Threads"]));
-    Search::clear();  // After threads are up
-    Eval::NNUE::init();
-    Book::init();  //Books management
+    Tune::init(uci.options);
 
-    UCI::loop(argc, argv);
+    uci.evalFiles = Eval::NNUE::load_networks(uci.workingDirectory(), uci.options, uci.evalFiles);
 
-    Threads.set(0);
+    uci.loop();
+
     return 0;
 }

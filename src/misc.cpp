@@ -1,6 +1,6 @@
 /*
-  Brainlearn, a UCI chess playing engine derived from Brainlearn
-  Copyright (C) 2004-2023 Andrea Manzo, K.Kiniama and Brainlearn developers (see AUTHORS file)
+  Brainlearn, a UCI chess playing engine derived from Stockfish
+  Copyright (C) 2004-2024 Andrea Manzo, K.Kiniama and Brainlearn developers (see AUTHORS file)
 
   Brainlearn is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -56,13 +56,13 @@ using fun8_t = bool (*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGE
 #include <mutex>
 #include <sstream>
 #include <string_view>
+//from Brainlearn begin
+#include <algorithm>
+#include <stdarg.h>
+//from Brainlearn end
 
 #include "types.h"
-//from Brainlearn begin
-#include <functional>
-#include <stdarg.h>
-#include "thread.h"
-//from Brainlearn end
+
 #if defined(__linux__) && !defined(__ANDROID__)
     #include <sys/mman.h>
 #endif
@@ -79,7 +79,7 @@ namespace Brainlearn {
 namespace {
 
 // Version number or dev.
-constexpr std::string_view version = "26.5";
+constexpr std::string_view version = "27";
 
 // Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 // cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
@@ -727,17 +727,13 @@ void bindThisThread(size_t idx) {
     #define GETCWD getcwd
 #endif
 
-namespace CommandLine {
-
-std::string argv0;             // path+name of the executable binary, as given by argv[0]
-std::string binaryDirectory;   // path of the executable directory
-std::string workingDirectory;  // path of the working directory
-
-void init([[maybe_unused]] int argc, char* argv[]) {
+CommandLine::CommandLine(int _argc, char** _argv) :
+    argc(_argc),
+    argv(_argv) {
     std::string pathSeparator;
 
     // Extract the path+name of the executable binary
-    argv0 = argv[0];
+    std::string argv0 = argv[0];
 
 #ifdef _WIN32
     pathSeparator = "\\";
@@ -768,25 +764,26 @@ void init([[maybe_unused]] int argc, char* argv[]) {
         binaryDirectory.resize(pos + 1);
 
     // Pattern replacement: "./" at the start of path is replaced by the working directory
+    //from Khalid begin
     if (binaryDirectory.find("." + pathSeparator) == 0)
+    {
         binaryDirectory.replace(0, 1, workingDirectory);
+    }
+    Util::init(this);
+    //from Khalid end
 }
 
+/*static*/ CommandLine* Util::cli = nullptr;
 
-}  // namespace CommandLine
-//book mangement and learning begin
-namespace Utility {
-//begin learning from Khalid
-std::string myFolder;
+/*static*/ void Util::init(CommandLine* _cli) {
+    cli = _cli;
 
-void init(const char* arg0) {
-    std::string s = arg0;
-    size_t      i = s.find_last_of(DirectorySeparator);
-    if (i != std::string::npos)
-        myFolder = s.substr(0, i);
+    //Ugly, I know. But who cares!
+    cli->binaryDirectory  = fix_path(cli->binaryDirectory);
+    cli->workingDirectory = fix_path(cli->workingDirectory);
 }
-//end learning from Khalid
-std::string unquote(const std::string& s) {
+
+/*static*/ std::string Util::unquote(const std::string& s) {
     std::string s1 = s;
 
     if (s1.size() > 2)
@@ -800,26 +797,26 @@ std::string unquote(const std::string& s) {
     return s1;
 }
 
-bool is_empty_filename(const std::string& fn) {
+/*static*/ bool Util::is_empty_filename(const std::string& fn) {
     if (fn.empty())
         return true;
 
     static std::string Empty = EMPTY;
-    return equal(fn.begin(), fn.end(), Empty.begin(), Empty.end(),
-                 [](char a, char b) { return tolower(a) == tolower(b); });
+    return std::equal(fn.begin(), fn.end(), Empty.begin(), Empty.end(),
+                      [](char a, char b) { return tolower(a) == tolower(b); });
 }
 
-std::string fix_path(const std::string& p) {
+/*static*/ std::string Util::fix_path(const std::string& p) {
     if (is_empty_filename(p))
         return p;
 
     std::string p1 = unquote(p);
-    replace(p1.begin(), p1.end(), ReverseDirectorySeparator, DirectorySeparator);
+    std::replace(p1.begin(), p1.end(), ReverseDirectorySeparator, DirectorySeparator);
 
     return p1;
 }
 
-std::string combine_path(const std::string& p1, const std::string& p2) {
+/*static*/ std::string Util::combine_path(const std::string& p1, const std::string& p2) {
     //We don't expect the first part of the path to be empty!
     assert(is_empty_filename(p1) == false);
 
@@ -835,7 +832,7 @@ std::string combine_path(const std::string& p1, const std::string& p2) {
     return fix_path(p);
 }
 
-std::string map_path(const std::string& p) {
+/*static*/ std::string Util::map_path(const std::string& p) {
     if (is_empty_filename(p))
         return p;
 
@@ -843,12 +840,12 @@ std::string map_path(const std::string& p) {
 
     //Make sure we can map this path
     if (p2.find(DirectorySeparator) == std::string::npos)
-        p2 = combine_path(CommandLine::binaryDirectory, p);
+        p2 = combine_path(cli->binaryDirectory, p);
 
     return p2;
 }
 
-size_t get_file_size(const std::string& f) {
+/*static*/ size_t Util::get_file_size(const std::string& f) {
     if (is_empty_filename(f))
         return (size_t) -1;
 
@@ -859,11 +856,11 @@ size_t get_file_size(const std::string& f) {
     return (size_t) in.tellg();
 }
 
-bool is_same_file(const std::string& f1, const std::string& f2) {
+/*static*/ bool Util::is_same_file(const std::string& f1, const std::string& f2) {
     return map_path(f1) == map_path(f2);
 }
 
-std::string format_bytes(uint64_t bytes, int decimals) {
+/*static*/ std::string Util::format_bytes(uint64_t bytes, int decimals) {
     static const uint64_t KB = 1024;
     static const uint64_t MB = KB * 1024;
     static const uint64_t GB = MB * 1024;
@@ -874,19 +871,19 @@ std::string format_bytes(uint64_t bytes, int decimals) {
     if (bytes < KB)
         ss << bytes << " B";
     else if (bytes < MB)
-        ss << std::fixed << std::setprecision(decimals) << ((double) bytes / KB) << "KB";
+        ss << std::fixed << std::setprecision(decimals) << (double(bytes) / KB) << "KB";
     else if (bytes < GB)
-        ss << std::fixed << std::setprecision(decimals) << ((double) bytes / MB) << "MB";
+        ss << std::fixed << std::setprecision(decimals) << (double(bytes) / MB) << "MB";
     else if (bytes < TB)
-        ss << std::fixed << std::setprecision(decimals) << ((double) bytes / GB) << "GB";
+        ss << std::fixed << std::setprecision(decimals) << (double(bytes) / GB) << "GB";
     else
-        ss << std::fixed << std::setprecision(decimals) << ((double) bytes / TB) << "TB";
+        ss << std::fixed << std::setprecision(decimals) << (double(bytes) / TB) << "TB";
 
     return ss.str();
 }
 
 //Code is an `edited` version of: https://stackoverflow.com/a/49812018
-std::string format_string(const char* const fmt, ...) {
+/*static*/ std::string Util::format_string(const char* const fmt, ...) {
     //Initialize use of the variable arguments
     va_list vaArgs;
     va_start(vaArgs, fmt);
@@ -906,26 +903,6 @@ std::string format_string(const char* const fmt, ...) {
 
     return std::string(v.data(), len);
 }
-bool is_game_decided(const Position& pos, Value lastScore) {
-    static constexpr const Value DecidedGameEvalThreeshold = PawnValue * 5;
-    static constexpr const int   DecidedGameMaxPly         = 150;
-    static constexpr const int   DecidedGameMaxPieceCount  = 5;
-
-    //Assume game is decided if |last sent score| is above DecidedGameEvalThreeshold
-    if (lastScore != VALUE_NONE && std::abs(lastScore) > DecidedGameEvalThreeshold)
-        return true;
-
-    //Assume game is decided (draw) if game ply is above 150
-    if (pos.game_ply() > DecidedGameMaxPly)
-        return true;
-
-    if (pos.count<ALL_PIECES>() < DecidedGameMaxPieceCount)
-        return true;
-
-    //Assume game is not decided!
-    return false;
-}
-}  // namespace Utility
 //Book management and learning end
 
 }  // namespace Brainlearn

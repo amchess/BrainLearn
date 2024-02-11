@@ -1,6 +1,6 @@
 /*
-  Brainlearn, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Brainlearn developers (see AUTHORS file)
+  Brainlearn, a UCI chess playing engine derived from Stockfish
+  Copyright (C) 2004-2024 The Brainlearn developers (see AUTHORS file)
 
   Brainlearn is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -44,15 +44,13 @@ Bitboard BishopTable[0x1480];  // To store bishop attacks
 
 void init_magics(PieceType pt, Bitboard table[], Magic magics[]);
 
-}
-
 // Returns the bitboard of target square for the given step
 // from the given square. If the step is off the board, returns empty bitboard.
-inline Bitboard safe_destination(Square s, int step) {
+Bitboard safe_destination(Square s, int step) {
     Square to = Square(s + step);
     return is_ok(to) && distance(s, to) <= 2 ? square_bb(to) : Bitboard(0);
 }
-
+}
 
 // Returns an ASCII representation of a bitboard suitable
 // to be printed to standard output. Useful for debugging.

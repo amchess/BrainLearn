@@ -1,6 +1,6 @@
 /*
-  Brainlearn, a UCI chess playing engine derived from Brainlearn
-  Copyright (C) 2004-2023 Andrea Manzo, K.Kiniama and Brainlearn developers (see AUTHORS file)
+  Brainlearn, a UCI chess playing engine derived from Stockfish
+  Copyright (C) 2004-2024 Andrea Manzo, K.Kiniama and Brainlearn developers (see AUTHORS file)
 
   Brainlearn is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ enum EdgeStatistic {
 struct Edge {
     //Default constructor
     Edge() :
-        move(MOVE_NONE),
+        move(Move::none()),
         visits(0),
         prior(REWARD_NONE),
         actionValue(REWARD_NONE),
@@ -142,11 +142,11 @@ struct mctsNodeInfo {
     Spinlock lock;
 
     // Data members
-    Key                key1           = 0;          // Zobrist hash of all pieces, including pawns
-    Key                key2           = 0;          // Zobrist hash of pawns
-    std::atomic<long>  node_visits    = 0;          // number of visits by the Monte-Carlo algorithm
-    std::atomic<int>   number_of_sons = 0;          // total number of legal moves
-    std::atomic<Move>  lastMove       = MOVE_NONE;  // the move between the parent and this node
+    Key                key1           = 0;  // Zobrist hash of all pieces, including pawns
+    Key                key2           = 0;  // Zobrist hash of pawns
+    std::atomic<long>  node_visits    = 0;  // number of visits by the Monte-Carlo algorithm
+    std::atomic<int>   number_of_sons = 0;  // total number of legal moves
+    std::atomic<Move>  lastMove       = Move::none();  // the move between the parent and this node
     std::atomic<Value> ttValue        = VALUE_NONE;
     std::atomic<bool>  AB             = false;
     EdgeArray          children;
@@ -183,19 +183,25 @@ class MonteCarlo {
 
    public:
     // Constructors
-    MonteCarlo(Position& p);
+    MonteCarlo(Position& p, Search::Worker* worker);
 
     //Prevent copying of this class type
     MonteCarlo(const MonteCarlo&)            = delete;
     MonteCarlo& operator=(const MonteCarlo&) = delete;
 
     // The main function of the class
-    void search();
+    void search(Brainlearn::ThreadPool&        threads,
+                Brainlearn::Search::LimitsType limits,
+                bool                           isMainThread,
+                Search::Worker*                worker,
+                TranspositionTable&            tt);
 
     // The high-level description of the Monte-Carlo algorithm
-    void          create_root();
-    bool          computational_budget();
-    mctsNodeInfo* tree_policy();
+    void          create_root(Search::Worker* worker);
+    bool          computational_budget(Brainlearn::ThreadPool&        threads,
+                                       Brainlearn::Search::LimitsType limits);
+    mctsNodeInfo* tree_policy(Brainlearn::ThreadPool&        threads,
+                              Brainlearn::Search::LimitsType limits);
     Reward        playout_policy(mctsNodeInfo* node);
     Value         backup(Reward r, bool AB_Mode);
     Edge*         best_child(mctsNodeInfo* node, EdgeStatistic statistic) const;
@@ -225,14 +231,16 @@ class MonteCarlo {
     [[nodiscard]] double exploration_constant() const;
 
     // Output of results
-    [[nodiscard]] bool should_emit_pv() const;
-    void               emit_pv();
+    [[nodiscard]] bool should_emit_pv(bool isMainThread) const;
+    void               emit_pv(Search::Worker*         worker,
+                               Brainlearn::ThreadPool& threads,
+                               TranspositionTable&     tt);
     void               print_children();
 
    private:
-    Position&           pos;  // The current position of the tree
-    Brainlearn::Thread* thisThread;
-    mctsNodeInfo*       root{};  // A pointer to the root
+    Position&                   pos;  // The current position of the tree
+    Brainlearn::Search::Worker* thisThread;
+    mctsNodeInfo*               root{};  // A pointer to the root
 
     // Counters and statistics
     int       ply{};

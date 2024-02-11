@@ -1,6 +1,6 @@
 /*
-  Brainlearn, a UCI chess playing engine derived from Brainlearn
-  Copyright (C) 2004-2023 Andrea Manzo, K.Kiniama and Brainlearn developers (see AUTHORS file)
+  Brainlearn, a UCI chess playing engine derived from Stockfish
+  Copyright (C) 2004-2024 Andrea Manzo, K.Kiniama and Brainlearn developers (see AUTHORS file)
 
   Brainlearn is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,12 +37,10 @@ enum GenType {
     LEGAL
 };
 
-struct ExtMove {
-    Move move;
-    int  value;
+struct ExtMove: public Move {
+    int value;
 
-    operator Move() const { return move; }
-    void operator=(Move m) { move = m; }
+    void operator=(Move m) { data = m.raw(); }
 
     // Inhibit unwanted implicit conversions to Move
     // with an ambiguity that yields to a compile error.
