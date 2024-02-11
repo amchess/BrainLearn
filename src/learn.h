@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 #include "types.h"
+#include "ucioption.h"
 
 enum class LearningMode {
     Off      = 1,
@@ -13,7 +14,7 @@ enum class LearningMode {
 struct LearningMove {
     Brainlearn::Depth depth       = 0;
     Brainlearn::Value score       = Brainlearn::VALUE_NONE;
-    Brainlearn::Move  move        = Brainlearn::MOVE_NONE;
+    Brainlearn::Move  move        = Brainlearn::Move::none();
     int               performance = 100;
 };
 
@@ -45,7 +46,7 @@ class LearningData {
     void        resume();
     inline bool is_paused() const { return isPaused; };
 
-    void         set_learning_mode(const std::string& lm);
+    void         set_learning_mode(Brainlearn::OptionsMap options, const std::string& lm);
     LearningMode learning_mode() const;
     inline bool  is_enabled() const { return learningMode != LearningMode::Off; }
 
@@ -53,12 +54,12 @@ class LearningData {
     inline bool is_readonly() const { return isReadOnly; }
 
     void clear();
-    void init();
-    void persist();
+    void init(Brainlearn::OptionsMap& o);
+    void persist(const Brainlearn::OptionsMap& o);
 
     void add_new_learning(Brainlearn::Key key, const LearningMove& lm);
 
-    int                 probe(Brainlearn::Key key, const LearningMove*& learningMove);
+    int   probeByMaxDepthAndScore(Brainlearn::Key key, const LearningMove*& learningMove);
     const LearningMove* probe_move(Brainlearn::Key key, Brainlearn::Move move);
 };
 

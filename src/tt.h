@@ -1,6 +1,6 @@
 /*
-  Brainlearn, a UCI chess playing engine derived from Brainlearn
-  Copyright (C) 2004-2023 Andrea Manzo, K.Kiniama and Brainlearn developers (see AUTHORS file)
+  Brainlearn, a UCI chess playing engine derived from Stockfish
+  Copyright (C) 2004-2024 Andrea Manzo, K.Kiniama and Brainlearn developers (see AUTHORS file)
 
   Brainlearn is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ struct TTEntry {
     Depth depth() const { return Depth(depth8 + DEPTH_OFFSET); }
     bool  is_pv() const { return bool(genBound8 & 0x4); }
     Bound bound() const { return Bound(genBound8 & 0x3); }
-    void  save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev);
+    void  save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t generation8);
 
    private:
     friend class TranspositionTable;
@@ -53,7 +53,7 @@ struct TTEntry {
     uint16_t key16;
     uint8_t  depth8;
     uint8_t  genBound8;
-    uint16_t move16;
+    Move     move16;
     int16_t  value16;
     int16_t  eval16;
 };
@@ -88,22 +88,22 @@ class TranspositionTable {
     void new_search() { generation8 += GENERATION_DELTA; }  // Lower bits are used for other things
     TTEntry* probe(const Key key, bool& found) const;
     int      hashfull() const;
-    void     resize(size_t mbSize);
-    void     clear();
+    void     resize(size_t mbSize, int threadCount);
+    void     clear(size_t threadCount);
 
     TTEntry* first_entry(const Key key) const {
         return &table[mul_hi64(key, clusterCount)].entry[0];
     }
 
+    uint8_t generation() const { return generation8; }
+
    private:
     friend struct TTEntry;
 
     size_t   clusterCount;
-    Cluster* table;
-    uint8_t  generation8;  // Size must be not bigger than TTEntry::genBound8
+    Cluster* table       = nullptr;
+    uint8_t  generation8 = 0;  // Size must be not bigger than TTEntry::genBound8
 };
-
-extern TranspositionTable TT;
 
 }  // namespace Brainlearn
 

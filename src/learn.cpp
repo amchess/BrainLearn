@@ -3,7 +3,6 @@
 #include <sstream>
 #include "misc.h"
 #include "learn.h"
-#include "uci.h"
 
 using namespace Brainlearn;
 
@@ -198,20 +197,20 @@ void LearningData::clear() {
     newMovesDataBuffers.clear();
 }
 
-void LearningData::init() {
+void LearningData::init(Brainlearn::OptionsMap& o) {
+    OptionsMap& options = o;
     clear();
-
-    learningMode = identify_learning_mode((bool) Options["Self Q-learning"] ? "Self" : "Standard");
+    learningMode = identify_learning_mode((bool(options["Self Q-learning"])) ? "Self" : "Standard");
     if (learningMode == LearningMode::Off)
         return;
 
-    load(Utility::map_path("experience.exp"));
+    load(Util::map_path("experience.exp"));
 
     std::vector<std::string> slaveFiles;
 
     //Just in case, check and load for "experience_new.exp" which will be present if
     //previous saving operation failed (engine crashed or terminated)
-    std::string slaveFile = Utility::map_path("experience_new.exp");
+    std::string slaveFile = Util::map_path("experience_new.exp");
     if (load("experience_new.exp"))
         slaveFiles.push_back(slaveFile);
 
@@ -219,7 +218,7 @@ void LearningData::init() {
     int i = 0;
     while (true)
     {
-        slaveFile   = Utility::map_path("experience" + std::to_string(i) + ".exp");
+        slaveFile   = Util::map_path("experience" + std::to_string(i) + ".exp");
         bool loaded = load(slaveFile);
         if (!loaded)
             break;
@@ -230,7 +229,7 @@ void LearningData::init() {
 
     //We need to write all consolidated experience to disk
     if (slaveFiles.size())
-        persist();
+        persist(options);
 
     //Remove slave files
     for (std::string fn : slaveFiles)
@@ -240,17 +239,18 @@ void LearningData::init() {
     needPersisting = false;
 }
 
-void LearningData::set_learning_mode(const std::string& lm) {
+void LearningData::set_learning_mode(Brainlearn::OptionsMap options, const std::string& lm) {
     LearningMode newLearningMode = identify_learning_mode(lm);
     if (newLearningMode == learningMode)
         return;
 
-    init();
+    init(options);
 }
 
 LearningMode LearningData::learning_mode() const { return learningMode; }
 
-void LearningData::persist() {
+void LearningData::persist(const Brainlearn::OptionsMap& o) {
+    const OptionsMap& options = o;
     //Quick exit if we have nothing to persist
     if (HT.empty() || !needPersisting)
         return;
@@ -277,7 +277,7 @@ void LearningData::persist() {
     std::string experienceFilename;
     std::string tempExperienceFilename;
 
-    if ((bool) Options["Concurrent Experience"])
+    if ((bool) options["Concurrent Experience"])
     {
         static std::string uniqueStr;
 
@@ -291,13 +291,13 @@ void LearningData::persist() {
             uniqueStr = ss.str();
         }
 
-        experienceFilename     = Utility::map_path("experience-" + uniqueStr + ".exp");
-        tempExperienceFilename = Utility::map_path("experience_new-" + uniqueStr + ".exp");
+        experienceFilename     = Util::map_path("experience-" + uniqueStr + ".exp");
+        tempExperienceFilename = Util::map_path("experience_new-" + uniqueStr + ".exp");
     }
     else
     {
-        experienceFilename     = Utility::map_path("experience.exp");
-        tempExperienceFilename = Utility::map_path("experience_new.exp");
+        experienceFilename     = Util::map_path("experience.exp");
+        tempExperienceFilename = Util::map_path("experience_new.exp");
     }
 
     std::ofstream outputFile(tempExperienceFilename, std::ofstream::trunc | std::ofstream::binary);
@@ -345,17 +345,39 @@ void LearningData::add_new_learning(Key key, const LearningMove& lm) {
     insert_or_update(newPlm, learningMode == LearningMode::Self);
 }
 
-int LearningData::probe(Key key, const LearningMove*& learningMove) {
-    auto range = HT.equal_range(key);
+int LearningData::probeByMaxDepthAndScore(Key key, const LearningMove*& learningMove) {
+    LearningMove* maxDepthMove = nullptr;
+    int maxDepth = -1;
+    int maxScore = -1;
 
-    if (range.first == range.second)
+    // Iterate through the range of elements with the given key
+    auto range = HT.equal_range(key);
+	if (range.first == range.second)
     {
         learningMove = nullptr;
-        return 0;
+		return 0;
+    }
+	int sibs=std::distance(range.first, range.second);	
+    for (auto it = range.first; it != range.second; ++it) {
+        LearningMove* move = it->second;
+
+        // Check if the current move has a greater depth than the maximum depth found so far
+        if (move->depth > maxDepth) {
+            maxDepth = move->depth;
+            maxScore = move->score;
+            maxDepthMove = move;
+        }
+        // If the current move has the same depth as the maximum depth found so far,
+        // check if it has a greater score
+        else if (move->depth == maxDepth && move->score > maxScore) {
+            maxScore = move->score;
+            maxDepthMove = move;
+        }
     }
 
-    learningMove = range.first->second;
-    return std::distance(range.first, range.second);
+    // Return the reference to the LearningMove with the maximum depth and score (or nullptr if not found)
+    learningMove = maxDepthMove;
+    return sibs;
 }
 
 const LearningMove* LearningData::probe_move(Key key, Move move) {

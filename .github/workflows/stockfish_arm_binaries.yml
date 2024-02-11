@@ -1,8 +1,8 @@
-name: Brainlearn
+name: Stockfish
 on:
   workflow_call:
 jobs:
-  Brainlearn:
+  Stockfish:
     name: ${{ matrix.config.name }} ${{ matrix.binaries }}
     runs-on: ${{ matrix.config.os }}
     env:
@@ -46,7 +46,7 @@ jobs:
         working-directory: src
         shell: ${{ matrix.config.shell }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -105,43 +105,43 @@ jobs:
           make -j2 profile-build ARCH=$BINARY COMP=$COMP WINE_PATH=$EMU
           make strip ARCH=$BINARY COMP=$COMP
           WINE_PATH=$EMU ../tests/signature.sh $benchref
-          mv ./brainlearn$EXT ../brainlearn-android-$BINARY$EXT
+          mv ./stockfish$EXT ../stockfish-android-$BINARY$EXT
 
       - name: Remove non src files
         run: rm -f *.o .depend *.nnue
 
       - name: Download wiki
         run: |
-          git clone https://github.com/official-brainlearn/Brainlearn.wiki.git ../wiki
+          git clone https://github.com/official-stockfish/Stockfish.wiki.git ../wiki
           cd ../wiki
           rm -rf .git
 
       - name: Create tar archive.
         run: |
           cd ..
-          mkdir brainlearn
-          cp -r wiki brainlearn/
-          cp -r src brainlearn/
-          cp brainlearn-android-$BINARY$EXT brainlearn/
-          cp "Top CPU Contributors.txt" brainlearn/
-          cp Copying.txt brainlearn/
-          cp AUTHORS brainlearn/
-          cp CITATION.cff brainlearn/
-          cp README.md brainlearn/
-          cp CONTRIBUTING.md brainlearn/
-          tar -cvf brainlearn-android-$BINARY.tar brainlearn
+          mkdir stockfish
+          cp -r wiki stockfish/
+          cp -r src stockfish/
+          cp stockfish-android-$BINARY$EXT stockfish/
+          cp "Top CPU Contributors.txt" stockfish/
+          cp Copying.txt stockfish/
+          cp AUTHORS stockfish/
+          cp CITATION.cff stockfish/
+          cp README.md stockfish/
+          cp CONTRIBUTING.md stockfish/
+          tar -cvf stockfish-android-$BINARY.tar stockfish
 
       - name: Upload binaries
         uses: actions/upload-artifact@v3
         with:
-          name: brainlearn-android-${{ matrix.binaries }}
-          path: brainlearn-android-${{ matrix.binaries }}.tar
+          name: stockfish-android-${{ matrix.binaries }}
+          path: stockfish-android-${{ matrix.binaries }}.tar
 
       - name: Release
         if: startsWith(github.ref_name, 'sf_') && github.ref_type == 'tag'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844  # @v1
         with:
-          files: brainlearn-android-${{ matrix.binaries }}.tar
+          files: stockfish-android-${{ matrix.binaries }}.tar
 
       - name: Get last commit sha
         id: last_commit
@@ -162,9 +162,9 @@ jobs:
       - name: Prerelease
         if: github.ref_name == 'master' && env.CHANGES == '0'
         continue-on-error: true
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844  # @v1
         with:
-          name: Brainlearn dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
-          tag_name: brainlearn-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
+          name: Stockfish dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
+          tag_name: stockfish-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           prerelease: true
-          files: brainlearn-android-${{ matrix.binaries }}.tar
+          files: stockfish-android-${{ matrix.binaries }}.tar

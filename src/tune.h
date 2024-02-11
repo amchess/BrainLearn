@@ -1,6 +1,6 @@
 /*
-  Brainlearn, a UCI chess playing engine derived from Brainlearn
-  Copyright (C) 2004-2023 Andrea Manzo, K.Kiniama and Brainlearn developers (see AUTHORS file)
+  Brainlearn, a UCI chess playing engine derived from Stockfish
+  Copyright (C) 2004-2024 Andrea Manzo, K.Kiniama and Brainlearn developers (see AUTHORS file)
 
   Brainlearn is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 #include <vector>
 
 namespace Brainlearn {
-enum Value : int;
+class OptionsMap;
 
 using Range    = std::pair<int, int>;  // Option's min-max values
 using RangeFun = Range(int);
@@ -101,8 +101,7 @@ class Tune {
 
         static_assert(!std::is_const_v<T>, "Parameter cannot be const!");
 
-        static_assert(std::is_same_v<T, int> || std::is_same_v<T, Value>
-                        || std::is_same_v<T, PostUpdate>,
+        static_assert(std::is_same_v<T, int> || std::is_same_v<T, PostUpdate>,
                       "Parameter type not supported!");
 
         Entry(const std::string& n, T& v, const SetRange& r) :
@@ -153,7 +152,8 @@ class Tune {
         return instance().add(SetDefaultRange, names.substr(1, names.size() - 2),
                               args...);  // Remove trailing parenthesis
     }
-    static void init() {
+    static void init(OptionsMap& o) {
+        options = &o;
         for (auto& e : instance().list)
             e->init_option();
         read_options();
@@ -162,7 +162,9 @@ class Tune {
         for (auto& e : instance().list)
             e->read_option();
     }
-    static bool update_on_last;
+
+    static bool        update_on_last;
+    static OptionsMap* options;
 };
 
 // Some macro magic :-) we define a dummy int variable that the compiler initializes calling Tune::add()
