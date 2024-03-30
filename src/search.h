@@ -51,7 +51,6 @@ enum NodeType {
 class TranspositionTable;
 class ThreadPool;
 class OptionsMap;
-class UCI;
 
 namespace Search {
 
@@ -129,12 +128,12 @@ struct LimitsType {
 // This struct is used to easily forward data to the Search::Worker class.
 struct SharedState {
     //from Polyfish begin
-    SharedState(BookManager& bm, Eval::NNUE::EvalFiles& ef, const OptionsMap& o, ThreadPool& tp, TranspositionTable& t) :
+    SharedState(BookManager& bm, Eval::NNUE::EvalFiles& ef, const OptionsMap& optionsMap, ThreadPool& threadPool, TranspositionTable& transpositionTable) :
         bookMan(bm),
         evalFiles(ef),
-        options(o),
-        threads(tp),
-        tt(t) {}
+        options(optionsMap),
+        threads(threadPool),
+        tt(transpositionTable) {}
 
     BookManager& bookMan;
     Eval::NNUE::EvalFiles& evalFiles;
@@ -226,11 +225,7 @@ class Worker {
     template<NodeType nodeType>
     Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth = 0);
 
-    Depth reduction(bool i, Depth d, int mn, int delta) {
-        int reductionScale = reductions[d] * reductions[mn];
-        return (reductionScale + 1177 - int(delta) * 776 / int(rootDelta)) / 1024
-             + (!i && reductionScale > 842);
-    }
+    Depth reduction(bool i, Depth d, int mn, int delta);
 
     // Get a pointer to the search manager, only allowed to be called by the
     // main thread.
@@ -238,6 +233,8 @@ class Worker {
         assert(thread_idx == 0);
         return static_cast<SearchManager*>(manager.get());
     }
+
+    std::array<std::array<uint64_t, SQUARE_NB>, SQUARE_NB> effort;
 
     LimitsType limits;
 
@@ -262,14 +259,15 @@ class Worker {
     std::unique_ptr<ISearchManager> manager;
 
     Tablebases::Config tbConfig;
+    //From PolyFish begin
     BookManager& bookMan;
     Eval::NNUE::EvalFiles& evalFiles;
+    //From PolyFish end
     const OptionsMap&   options;
     ThreadPool&         threads;
     TranspositionTable& tt;
 
     friend class Brainlearn::ThreadPool;
-    friend class Brainlearn::UCI;
     friend class SearchManager;
 };
 

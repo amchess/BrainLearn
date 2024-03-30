@@ -24,6 +24,7 @@
 #include <memory>
 #include <unordered_map>
 #include <utility>
+#include <array>
 
 #include "misc.h"
 #include "movegen.h"
@@ -204,6 +205,7 @@ void ThreadPool::start_thinking(const OptionsMap&  options,
         th->worker->rootPos.set(pos.fen(), pos.is_chess960(), &th->worker->rootState);
         th->worker->rootState = setupStates->back();
         th->worker->tbConfig  = tbConfig;
+        th->worker->effort    = {};
     }
 
     main_thread()->start_searching();
@@ -211,10 +213,11 @@ void ThreadPool::start_thinking(const OptionsMap&  options,
 
 Thread* ThreadPool::get_best_thread() const {
 
-    std::unordered_map<Move, int64_t, Move::MoveHash> votes;
-
     Thread* bestThread = threads.front();
     Value   minScore   = VALUE_NONE;
+
+    std::unordered_map<Move, int64_t, Move::MoveHash> votes(
+      2 * std::min(size(), bestThread->worker->rootMoves.size()));
 
     // Find the minimum score of all threads
     for (Thread* th : threads)
@@ -233,12 +236,11 @@ Thread* ThreadPool::get_best_thread() const {
         const auto bestThreadScore = bestThread->worker->rootMoves[0].score;
         const auto newThreadScore  = th->worker->rootMoves[0].score;
 
-        const auto bestThreadPV = bestThread->worker->rootMoves[0].pv;
-        const auto newThreadPV  = th->worker->rootMoves[0].pv;
+        const auto& bestThreadPV = bestThread->worker->rootMoves[0].pv;
+        const auto& newThreadPV  = th->worker->rootMoves[0].pv;
 
         const auto bestThreadMoveVote = votes[bestThreadPV[0]];
         const auto newThreadMoveVote  = votes[newThreadPV[0]];
-
 
         const bool bestThreadInProvenWin = bestThreadScore >= VALUE_TB_WIN_IN_MAX_PLY;
         const bool newThreadInProvenWin  = newThreadScore >= VALUE_TB_WIN_IN_MAX_PLY;

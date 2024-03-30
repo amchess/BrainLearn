@@ -26,7 +26,6 @@
 #include <utility>
 
 #include "misc.h"
-#include "learn.h" //for learning
 
 namespace Brainlearn {
 

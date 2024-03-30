@@ -55,7 +55,7 @@ PGOBENCH = $(WINE_PATH) ./$(EXE) bench
 SRCS = benchmark.cpp bitboard.cpp evaluate.cpp main.cpp \
 	misc.cpp movegen.cpp movepick.cpp position.cpp \
 	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp syzygy/tbprobe.cpp \
-	learn.cpp mcts/montecarlo.cpp  \
+	learn/learn.cpp mcts/montecarlo.cpp  \
 	book/file_mapping.cpp book/book.cpp book/book_manager.cpp book/polyglot/polyglot.cpp book/ctg/ctg.cpp \
 	nnue/evaluate_nnue.cpp nnue/features/half_ka_v2_hm.cpp
 
@@ -66,10 +66,10 @@ HEADERS = benchmark.h bitboard.h evaluate.h misc.h movegen.h movepick.h \
 		nnue/nnue_common.h nnue/nnue_feature_transformer.h position.h \
 		search.h syzygy/tbprobe.h thread.h thread_win32_osx.h timeman.h \
 		tt.h tune.h types.h uci.h ucioption.h perft.h \
-		book/file_mapping.h book/book.h book/book_manager.h book/polyglot/polyglot.h book/ctg/ctg.h learn.h mcts/montecarlo.h
+		book/file_mapping.h book/book.h book/book_manager.h book/polyglot/polyglot.h book/ctg/ctg.h learn/learn.h mcts/montecarlo.h
 OBJS = $(notdir $(SRCS:.cpp=.o))
 
-VPATH = mcts:syzygy:nnue:nnue/features:book:book/polyglot:book/ctg
+VPATH = mcts:syzygy:nnue:nnue/features:book:book/polyglot:book/ctg:learn
 
 ### ==========================================================================
 ### Section 2. High-level Configuration
@@ -921,12 +921,12 @@ clean: objclean profileclean
 
 # clean binaries and objects
 objclean:
-	@rm -f brainlearn brainlearn.exe *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./book/polyglot/*.o ./book/ctg/*.o
+	@rm -f brainlearn brainlearn.exe *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./book/polyglot/*.o ./book/ctg/*.o ./learn/*.o
 
 # clean auxiliary profiling files
 profileclean:
 	@rm -rf profdir
-	@rm -f bench.txt *.gcda *.gcno ./syzygy/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda ./book/*.gcda ./book/polyglot/*.gcda ./book/ctg/*.gcda *.s PGOBENCH.out
+	@rm -f bench.txt *.gcda *.gcno ./syzygy/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda ./book/*.gcda ./book/polyglot/*.gcda ./book/ctg/*.gcda ./learn/*.gcda *.s PGOBENCH.out
 	@rm -f brainlearn.profdata *.profraw
 	@rm -f brainlearn.*args*
 	@rm -f brainlearn.*lt*
