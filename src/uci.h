@@ -28,7 +28,7 @@
 #include "position.h"
 #include "thread.h"
 #include "tt.h"
-#include "book/book_manager.h"//book management
+#include "book/book_manager.h"  //book management
 #include "ucioption.h"
 
 namespace Brainlearn {
@@ -63,7 +63,7 @@ class UCI {
    private:
     TranspositionTable tt;
     ThreadPool         threads;
-	BookManager  bookMan;//book management
+    BookManager        bookMan;  //book management
     CommandLine        cli;
 
     void go(Position& pos, std::istringstream& is, StateListPtr& states);

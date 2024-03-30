@@ -63,7 +63,7 @@ void TimeManagement::init(Search::LimitsType& limits,
     TimePoint minThinkingTime = TimePoint(options["Minimum Thinking Time"]);
     //minThinkigTime end
     TimePoint moveOverhead = TimePoint(options["Move Overhead"]);
-    TimePoint slowMover    = TimePoint(options["Slow Mover"]);//for SlowMover
+    TimePoint slowMover    = TimePoint(options["Slow Mover"]);  //for SlowMover
     TimePoint npmsec       = TimePoint(options["nodestime"]);
 
     // optScale is a percentage of available time to use for the current move.
@@ -97,8 +97,8 @@ void TimeManagement::init(Search::LimitsType& limits,
     // A user may scale time usage by setting UCI option "Slow Mover"
     // Default is 100 and changing this value will probably lose elo.
     timeLeft = slowMover * timeLeft / 100;
-	//from SlowMover end
-	
+    //from SlowMover end
+
     // x basetime (+ z increment)
     // If there is a healthy increment, timeLeft can exceed actual available
     // game time for the current move, so also cap to 20% of available game time.

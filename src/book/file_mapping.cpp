@@ -26,7 +26,7 @@ FileMapping::~FileMapping() { unmap(); }
 bool FileMapping::map(const std::string& f, bool verbose) {
     unmap();
 
-    #ifdef _WIN32
+#ifdef _WIN32
     // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored.
     HANDLE fd = CreateFile(f.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
                            FILE_FLAG_RANDOM_ACCESS, nullptr);
@@ -80,7 +80,7 @@ bool FileMapping::map(const std::string& f, bool verbose) {
     mapping     = uint64_t(mmap);
     baseAddress = viewBase;
     dataSize    = size_t(li.QuadPart);
-    #else
+#else
     //Open the file
     struct stat statbuf;
     int         fd = ::open(f.c_str(), O_RDONLY);
@@ -117,15 +117,15 @@ bool FileMapping::map(const std::string& f, bool verbose) {
         return false;
     }
 
-        #if defined(MADV_RANDOM)
+    #if defined(MADV_RANDOM)
     madvise(data, statbuf.st_size, MADV_RANDOM);
-        #endif
+    #endif
     ::close(fd);
 
     mapping     = statbuf.st_size;
     baseAddress = data;
     dataSize    = statbuf.st_size;
-    #endif
+#endif
     return true;
 }
 
@@ -133,16 +133,16 @@ void FileMapping::unmap() {
     assert((mapping == 0) == (baseAddress == nullptr)
            && (baseAddress == nullptr) == (dataSize == 0));
 
-    #ifdef _WIN32
+#ifdef _WIN32
     if (baseAddress)
         UnmapViewOfFile(baseAddress);
 
     if (mapping)
         CloseHandle((HANDLE) mapping);
-    #else
+#else
     if (baseAddress && mapping)
         munmap(baseAddress, mapping);
-    #endif
+#endif
     baseAddress = nullptr;
     mapping     = 0;
     dataSize    = 0;

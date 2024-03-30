@@ -347,30 +347,33 @@ void LearningData::add_new_learning(Key key, const LearningMove& lm) {
 
 int LearningData::probeByMaxDepthAndScore(Key key, const LearningMove*& learningMove) {
     LearningMove* maxDepthMove = nullptr;
-    int maxDepth = -1;
-    int maxScore = -1;
+    int           maxDepth     = -1;
+    int           maxScore     = -1;
 
     // Iterate through the range of elements with the given key
     auto range = HT.equal_range(key);
-	if (range.first == range.second)
+    if (range.first == range.second)
     {
         learningMove = nullptr;
-		return 0;
+        return 0;
     }
-	int sibs=std::distance(range.first, range.second);	
-    for (auto it = range.first; it != range.second; ++it) {
+    int sibs = std::distance(range.first, range.second);
+    for (auto it = range.first; it != range.second; ++it)
+    {
         LearningMove* move = it->second;
 
         // Check if the current move has a greater depth than the maximum depth found so far
-        if (move->depth > maxDepth) {
-            maxDepth = move->depth;
-            maxScore = move->score;
+        if (move->depth > maxDepth)
+        {
+            maxDepth     = move->depth;
+            maxScore     = move->score;
             maxDepthMove = move;
         }
         // If the current move has the same depth as the maximum depth found so far,
         // check if it has a greater score
-        else if (move->depth == maxDepth && move->score > maxScore) {
-            maxScore = move->score;
+        else if (move->depth == maxDepth && move->score > maxScore)
+        {
+            maxScore     = move->score;
             maxDepthMove = move;
         }
     }

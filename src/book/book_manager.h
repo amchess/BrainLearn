@@ -1,33 +1,30 @@
 #ifndef BOOKMANAGER_H_INCLUDED
 #define BOOKMANAGER_H_INCLUDED
 
-namespace Brainlearn
-{
-    namespace Book
-    {
-        class Book;
-    }
+namespace Brainlearn {
+namespace Book {
+class Book;
+}
 
-    class BookManager
-    {
-    public:
-        static constexpr int NumberOfBooks = 2;
+class BookManager {
+   public:
+    static constexpr int NumberOfBooks = 2;
 
-    private:
-        Book::Book* books[NumberOfBooks];
+   private:
+    Book::Book* books[NumberOfBooks];
 
-    public:
-        BookManager();
-        virtual ~BookManager();
+   public:
+    BookManager();
+    virtual ~BookManager();
 
-        BookManager(const BookManager&) = delete;
-        BookManager& operator=(const BookManager&) = delete;
+    BookManager(const BookManager&)            = delete;
+    BookManager& operator=(const BookManager&) = delete;
 
-        void init(const OptionsMap& options);
-        void init(int index, const OptionsMap& options);
-        Move probe(const Position& pos, const OptionsMap& options) const;
-        void show_moves(const Position& pos, const OptionsMap& options) const;
-    };
+    void init(const OptionsMap& options);
+    void init(int index, const OptionsMap& options);
+    Move probe(const Position& pos, const OptionsMap& options) const;
+    void show_moves(const Position& pos, const OptionsMap& options) const;
+};
 }
 
 #endif

@@ -218,32 +218,31 @@ void move_to_front(std::vector<T>& vec, Predicate pred) {
 }
 }
 //begin from khalid
-#define EMPTY   "<empty>"
+#define EMPTY "<empty>"
 
-class Util
-{
-private:
-#if defined(_WIN32) || defined (_WIN64)
-    static constexpr char DirectorySeparator = '\\';
+class Util {
+   private:
+#if defined(_WIN32) || defined(_WIN64)
+    static constexpr char DirectorySeparator        = '\\';
     static constexpr char ReverseDirectorySeparator = '/';
 #else
-    static constexpr char DirectorySeparator = '/';
+    static constexpr char DirectorySeparator        = '/';
     static constexpr char ReverseDirectorySeparator = '\\';
 #endif
 
     static CommandLine* cli;
 
-public:
+   public:
     static void init(CommandLine* _cli);
 
     static std::string unquote(const std::string& s);
-    static bool is_empty_filename(const std::string& f);
+    static bool        is_empty_filename(const std::string& f);
     static std::string fix_path(const std::string& p);
     static std::string combine_path(const std::string& p1, const std::string& p2);
     static std::string map_path(const std::string& p);
 
     static size_t get_file_size(const std::string& f);
-    static bool is_same_file(const std::string& f1, const std::string& f2);
+    static bool   is_same_file(const std::string& f1, const std::string& f2);
 
     static std::string format_bytes(uint64_t bytes, int decimals);
 
