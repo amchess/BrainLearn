@@ -450,7 +450,7 @@ Move PolyglotBook::probe(const Position& pos, size_t width, bool /*onlyGreen*/) 
     if (!bookMoves.size())
         return Move::none();
 
-    #if 1
+#if 1
     //Remove any move with REALLY low weight compared to the total weight of all moves
     //Such moves appear with probability 0% in SCID
 
@@ -465,7 +465,7 @@ Move PolyglotBook::probe(const Position& pos, size_t width, bool /*onlyGreen*/) 
                                   return uint64_t(x.entry.count) * 200 < totalWeight;
                               }),
                     bookMoves.end());
-    #endif
+#endif
 
     //Sort moves accorging to their weights
     stable_sort(bookMoves.begin(), bookMoves.end(),

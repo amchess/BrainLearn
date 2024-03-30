@@ -232,10 +232,8 @@ class MonteCarlo {
 
     // Output of results
     [[nodiscard]] bool should_emit_pv(bool isMainThread) const;
-    void               emit_pv(Search::Worker*         worker,
-                               Brainlearn::ThreadPool& threads,
-                               TranspositionTable&     tt);
-    void               print_children();
+    void emit_pv(Search::Worker* worker, Brainlearn::ThreadPool& threads, TranspositionTable& tt);
+    void print_children();
 
    private:
     Position&                   pos;  // The current position of the tree

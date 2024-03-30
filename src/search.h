@@ -128,14 +128,18 @@ struct LimitsType {
 // This struct is used to easily forward data to the Search::Worker class.
 struct SharedState {
     //from Polyfish begin
-    SharedState(BookManager& bm, Eval::NNUE::EvalFiles& ef, const OptionsMap& optionsMap, ThreadPool& threadPool, TranspositionTable& transpositionTable) :
+    SharedState(BookManager&           bm,
+                Eval::NNUE::EvalFiles& ef,
+                const OptionsMap&      optionsMap,
+                ThreadPool&            threadPool,
+                TranspositionTable&    transpositionTable) :
         bookMan(bm),
         evalFiles(ef),
         options(optionsMap),
         threads(threadPool),
         tt(transpositionTable) {}
 
-    BookManager& bookMan;
+    BookManager&           bookMan;
     Eval::NNUE::EvalFiles& evalFiles;
     //from Polyfish end
     const OptionsMap&   options;
@@ -163,7 +167,7 @@ class SearchManager: public ISearchManager {
                    const ThreadPool&         threads,
                    const TranspositionTable& tt,
                    Depth                     depth) const;
-                   
+
     Brainlearn::TimeManagement tm;
     int                        callsCnt;
     std::atomic_bool           ponder;
@@ -212,8 +216,8 @@ class Worker {
     ContinuationHistory   continuationHistory[2][2];
     PawnHistory           pawnHistory;
     CorrectionHistory     correctionHistory;
-    RootMoves             rootMoves;  //mcts
-    Depth                 completedDepth;  //mcts 
+    RootMoves             rootMoves;       //mcts
+    Depth                 completedDepth;  //mcts
    private:
     void iterative_deepening();
 
@@ -247,7 +251,7 @@ class Worker {
     Position  rootPos;
     StateInfo rootState;
     //mcts
-    Depth rootDepth;//mcts
+    Depth rootDepth;  //mcts
     Value rootDelta;
 
     //for mcts
@@ -260,7 +264,7 @@ class Worker {
 
     Tablebases::Config tbConfig;
     //From PolyFish begin
-    BookManager& bookMan;
+    BookManager&           bookMan;
     Eval::NNUE::EvalFiles& evalFiles;
     //From PolyFish end
     const OptionsMap&   options;

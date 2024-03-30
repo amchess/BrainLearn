@@ -59,7 +59,7 @@ class LearningData {
 
     void add_new_learning(Brainlearn::Key key, const LearningMove& lm);
 
-    int   probeByMaxDepthAndScore(Brainlearn::Key key, const LearningMove*& learningMove);
+    int probeByMaxDepthAndScore(Brainlearn::Key key, const LearningMove*& learningMove);
     const LearningMove* probe_move(Brainlearn::Key key, Brainlearn::Move move);
 };
 

@@ -76,13 +76,13 @@ UCI::UCI(int argc, char** argv) :
     options["MultiPV"] << Option(1, 1, MAX_MOVES);
     options["Skill Level"] << Option(20, 0, 20);
     options["Move Overhead"] << Option(10, 0, 5000);
-    options["Minimum Thinking Time"] << Option(100, 0, 5000);//minimum thining time
-    options["Slow Mover"] << Option(100, 10, 1000);//slow mover
+    options["Minimum Thinking Time"] << Option(100, 0, 5000);  //minimum thining time
+    options["Slow Mover"] << Option(100, 10, 1000);            //slow mover
     options["nodestime"] << Option(0, 0, 10000);
     options["UCI_Chess960"] << Option(false);
     options["UCI_LimitStrength"] << Option(false);
     options["UCI_Elo"] << Option(1320, 1320, 3190);
-    options["UCI_ShowWDL"] << Option(true); //better Win Probability as the default
+    options["UCI_ShowWDL"] << Option(true);  //better Win Probability as the default
     //Book management begin
     for (int i = 0; i < BookManager::NumberOfBooks; ++i)
     {
@@ -102,7 +102,7 @@ UCI::UCI(int argc, char** argv) :
     });
     options["EvalFileSmall"] << Option(EvalFileDefaultNameSmall, [this](const Option&) {
         evalFiles = Eval::NNUE::load_networks(cli.binaryDirectory, options, evalFiles);
-    });    
+    });
     //From Kelly begin
     options["Read only learning"] << Option(false, [this](const Option& o) { LD.set_readonly(o); });
     options["Self Q-learning"] << Option(false, [this](const Option& o) {
@@ -115,7 +115,7 @@ UCI::UCI(int argc, char** argv) :
     options["MCTS Multi Strategy"] << Option(20, 0, 100);
     options["MCTS Multi MinVisits"] << Option(5, 0, 1000);
     //From MCTS end
- //livebook begin
+    //livebook begin
 #ifdef USE_LIVEBOOK
     options["Live Book"] << Option(false);
     options["Live Book URL"] << Option("http://www.chessdb.cn/cdb.php",

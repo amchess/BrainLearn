@@ -26,14 +26,14 @@
 #include "tune.h"
 #include "types.h"
 #include "uci.h"
-#include "learn/learn.h"      //learning
+#include "learn/learn.h"  //learning
 using namespace Brainlearn;
 
 int main(int argc, char* argv[]) {
 
     std::cout << engine_info() << std::endl;
-    UCI uci(argc, argv);     //Khalid
-    LD.init(uci.options);     //Kelly
+    UCI uci(argc, argv);   //Khalid
+    LD.init(uci.options);  //Kelly
     Bitboards::init();
     Position::init();
     Tune::init(uci.options);

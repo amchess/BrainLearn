@@ -17,7 +17,7 @@
 */
 
 #include "search.h"
-#include <random>//for opening variety
+#include <random>  //for opening variety
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -43,7 +43,7 @@
 #include "tt.h"
 #include "uci.h"
 #include "ucioption.h"
-#include "learn/learn.h"  //Khalid
+#include "learn/learn.h"      //Khalid
 #include "mcts/montecarlo.h"  //Montecarlo
 
 namespace Brainlearn {
@@ -134,7 +134,7 @@ std::mt19937& get_random_generator() {
     return gen;
 }
 //random generators end
-int openingVariety;  
+int openingVariety;
 //opening variety end
 
 
@@ -304,10 +304,9 @@ void Search::Worker::start_searching() {
                     {
                         CURLcode    res;
                         char*       szFen = curl_easy_escape(g_cURL, rootPos.fen().c_str(), 0);
-                        std::string szURL =
-                            g_livebookURL + "?action="
-                            + (options["Live Book Diversity"] ? "query" : "querybest")
-                            + "&board=" + szFen;
+                        std::string szURL = g_livebookURL + "?action="
+                                          + (options["Live Book Diversity"] ? "query" : "querybest")
+                                          + "&board=" + szFen;
                         curl_free(szFen);
                         curl_easy_setopt(g_cURL, CURLOPT_URL, szURL.c_str());
                         g_szRecv.clear();
@@ -315,7 +314,7 @@ void Search::Worker::start_searching() {
                         if (res == CURLE_OK)
                         {
                             g_szRecv.erase(std::find(g_szRecv.begin(), g_szRecv.end(), '\0'),
-                                            g_szRecv.end());
+                                           g_szRecv.end());
                             if (g_szRecv.find("move:") != std::string::npos)
                             {
                                 std::string tmp = g_szRecv.substr(5);
@@ -330,8 +329,8 @@ void Search::Worker::start_searching() {
                         think    = false;
                         for (Thread* th : threads)
                             std::swap(th->worker->rootMoves[0],
-                                        *std::find(th->worker->rootMoves.begin(),
-                                                    th->worker->rootMoves.end(), bookMove));
+                                      *std::find(th->worker->rootMoves.begin(),
+                                                 th->worker->rootMoves.end(), bookMove));
                     }
                     else
                     {
@@ -342,7 +341,7 @@ void Search::Worker::start_searching() {
             }
         }
 #endif
-            // Live Book end
+        // Live Book end
 
         //from Book and live book management begin
         if (!bookMove || think)
@@ -557,7 +556,8 @@ void Search::Worker::iterative_deepening() {
             delete monteCarlo;
 
 #if !defined(NDEBUG) && !defined(_NDEBUG)
-            sync_cout << "info string *** Thread[" << thread_idx << "] finished MCTS search" << sync_endl;
+            sync_cout << "info string *** Thread[" << thread_idx << "] finished MCTS search"
+                      << sync_endl;
 #endif
 
             return;
@@ -1131,11 +1131,12 @@ Value Search::Worker::search(
 
         if (!(expTTHit) || !(updatedLearning))
         {
-        	ss->staticEval = eval = to_corrected_static_eval(unadjustedStaticEval, *thisThread, pos);
+            ss->staticEval = eval =
+              to_corrected_static_eval(unadjustedStaticEval, *thisThread, pos);
 
             // Static evaluation is saved as it was before adjustment by correction history
-	        tte->save(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, Move::none(),
-	                  unadjustedStaticEval, tt.generation());
+            tte->save(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, Move::none(),
+                      unadjustedStaticEval, tt.generation());
         }
         else  // learning
         {
@@ -1143,7 +1144,8 @@ Value Search::Worker::search(
             ss->staticEval = eval = expTTValue;
             if (eval == VALUE_NONE)
             {
-				ss->staticEval = eval = to_corrected_static_eval(unadjustedStaticEval, *thisThread, pos);
+                ss->staticEval = eval =
+                  to_corrected_static_eval(unadjustedStaticEval, *thisThread, pos);
             }
             if (eval == VALUE_DRAW)
             {
@@ -2039,13 +2041,14 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
     {
         const auto normalizedVariety = openingVariety * NormalizeToPawnValue / 100;
 
-        if (bestValue + normalizedVariety >= 0&& pos.count<PAWN>() > 12)
+        if (bestValue + normalizedVariety >= 0 && pos.count<PAWN>() > 12)
         {
             // Range for openingVariety bonus
             const auto openingVarietyMinRange = thisThread->nodes / 2;
             const auto openingVarietyMaxRange = thisThread->nodes * 2;
             // Distribution for openingVariety bonus
-            std::uniform_int_distribution<int> distribution(openingVarietyMinRange, openingVarietyMaxRange);
+            std::uniform_int_distribution<int> distribution(openingVarietyMinRange,
+                                                            openingVarietyMaxRange);
             bestValue += distribution(get_random_generator()) % (openingVariety + 1);
         }
     }
