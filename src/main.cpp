@@ -26,7 +26,7 @@
 #include "tune.h"
 #include "types.h"
 #include "uci.h"
-#include "learn.h"      //learning
+#include "learn/learn.h"      //learning
 using namespace Brainlearn;
 
 int main(int argc, char* argv[]) {

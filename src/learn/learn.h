@@ -2,8 +2,8 @@
 #define LEARN_H_INCLUDED
 
 #include <unordered_map>
-#include "types.h"
-#include "ucioption.h"
+#include "../types.h"
+#include "../ucioption.h"
 
 enum class LearningMode {
     Off      = 1,

@@ -173,7 +173,7 @@ constexpr Value MIDDLE_MCTS = 378;
 //constexpr Value MIDDLE_LOW_MCTS  =336;
 //constexpr Value LOW_MCTS         =310,
 //constexpr Value MIN_MCTS         =25;
-constexpr int NormalizeToPawnValue = 345;
+constexpr int NormalizeToPawnValue = 356;
 //from mcts end
 
 // clang-format off
@@ -408,7 +408,7 @@ class Move {
     constexpr std::uint16_t raw() const { return data; }
 
     struct MoveHash {
-        std::size_t operator()(const Move& m) const { return m.data; }
+        std::size_t operator()(const Move& m) const { return make_key(m.data); }
     };
 
    protected:

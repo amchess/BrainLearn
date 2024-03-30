@@ -43,7 +43,7 @@
 #include "perft.h"
 //From Brainlearn begin
 
-#include "learn.h"
+#include "learn/learn.h"
 #include "book/book.h"
 #include "mcts/montecarlo.h"
 //From Brainlearn end
@@ -76,12 +76,14 @@ UCI::UCI(int argc, char** argv) :
     options["MultiPV"] << Option(1, 1, MAX_MOVES);
     options["Skill Level"] << Option(20, 0, 20);
     options["Move Overhead"] << Option(10, 0, 5000);
-    options["Minimum Thinking Time"] << Option(100, 0, 5000);
+    options["Minimum Thinking Time"] << Option(100, 0, 5000);//minimum thining time
+    options["Slow Mover"] << Option(100, 10, 1000);//slow mover
     options["nodestime"] << Option(0, 0, 10000);
     options["UCI_Chess960"] << Option(false);
     options["UCI_LimitStrength"] << Option(false);
     options["UCI_Elo"] << Option(1320, 1320, 3190);
-    options["UCI_ShowWDL"] << Option(false);
+    options["UCI_ShowWDL"] << Option(true); //better Win Probability as the default
+    //Book management begin
     for (int i = 0; i < BookManager::NumberOfBooks; ++i)
     {
         options[Util::format_string("CTG/BIN Book %d File", i + 1)]
@@ -90,6 +92,7 @@ UCI::UCI(int argc, char** argv) :
         options[Util::format_string("Book %d Depth", i + 1)] << Option(255, 1, 255);
         options[Util::format_string("(CTG) Book %d Only Green", i + 1)] << Option(true);
     }
+    //Book management end
     options["SyzygyPath"] << Option("<empty>", [](const Option& o) { Tablebases::init(o); });
     options["SyzygyProbeDepth"] << Option(1, 1, 100);
     options["Syzygy50MoveRule"] << Option(true);
@@ -97,6 +100,9 @@ UCI::UCI(int argc, char** argv) :
     options["EvalFile"] << Option(EvalFileDefaultNameBig, [this](const Option&) {
         evalFiles = Eval::NNUE::load_networks(cli.binaryDirectory, options, evalFiles);
     });
+    options["EvalFileSmall"] << Option(EvalFileDefaultNameSmall, [this](const Option&) {
+        evalFiles = Eval::NNUE::load_networks(cli.binaryDirectory, options, evalFiles);
+    });    
     //From Kelly begin
     options["Read only learning"] << Option(false, [this](const Option& o) { LD.set_readonly(o); });
     options["Self Q-learning"] << Option(false, [this](const Option& o) {
@@ -493,8 +499,8 @@ int win_rate_model(Value v, int ply) {
     // The coefficients of a third-order polynomial fit is based on the fishtest data
     // for two parameters that need to transform eval to the argument of a logistic
     // function.
-    constexpr double as[] = {-2.00568292, 10.45906746, 1.67438883, 334.45864705};
-    constexpr double bs[] = {-4.97134419, 36.15096345, -82.25513499, 117.35186805};
+    constexpr double as[] = {-1.06249702, 7.42016937, 0.89425629, 348.60356174};
+    constexpr double bs[] = {-5.33122190, 39.57831533, -90.84473771, 123.40620748};
 
     // Enforce that NormalizeToPawnValue corresponds to a 50% win rate at move 32.
     static_assert(NormalizeToPawnValue == int(0.5 + as[0] + as[1] + as[2] + as[3]));

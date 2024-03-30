@@ -217,7 +217,7 @@ void move_to_front(std::vector<T>& vec, Predicate pred) {
     }
 }
 }
-
+//begin from khalid
 #define EMPTY   "<empty>"
 
 class Util

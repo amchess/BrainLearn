@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include "misc.h"
+#include "../misc.h"
 #include "learn.h"
 
 using namespace Brainlearn;
