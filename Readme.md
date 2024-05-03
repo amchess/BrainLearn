@@ -273,40 +273,39 @@ The move weight calculated by **Polyfish** (can be seen using the **book** comma
 
 Despite the fact that Polyfish can read and play from CTG Book, it is not going to be identical to Chessbase own products since it is based on the partial CTG specification available publicly. Use at your own risk!
 
-#### Live Book section (thanks to Eman's author Khalid Omar for windows builds)
+### Live Book section (thanks to Eman's author Khalid Omar for windows builds)
 
-##### Live Book (checkbox)
+#### Live Book (checkbox)
 
-_Boolean, Default: False_ If activated, the engine uses the livebook as primary choice.
+Default is Off: no livebook. The other values are "NoEgtbs" (no livebook for an endgame with at max 7 mens), "Egtbs" (livebook only for an endgame with at max 7 mens) and "Both" (the livebook whenever is possible).
 
-##### Live Book URL
-The default is the online [chessdb](https://www.chessdb.cn/queryc_en/), a wonderful project by noobpwnftw (thanks to him!)
+#### Live Book URL
+The default is the online chessdb [https://www.chessdb.cn/queryc_en/](https://www.chessdb.cn/queryc_en/), a wonderful project by noobpwnftw (thanks to him!)
  
 [https://github.com/noobpwnftw/chessdb](https://github.com/noobpwnftw/chessdb)
-
 [http://talkchess.com/forum3/viewtopic.php?f=2&t=71764&hilit=chessdb](http://talkchess.com/forum3/viewtopic.php?f=2&t=71764&hilit=chessdb)
 
 The private application can also learn from this live db.
 
-##### Live Book Timeout
+#### Live Book Timeout
 
 _Default 5000, min 0, max 10000_ Only for bullet games, use a lower value, for example, 1500.
 
-##### Live Book Retry
+#### Live Book Retry
 
 _Default 3, min 1, max 100_ Max times the engine tries to contribute (if the corresponding option is activated: see below) to the live book. If 0, the engine doesn't use the livebook.
 
-##### Live Book Diversity
+#### Live Book Diversity
 
 _Boolean, Default: False_ If activated, the engine varies its play, reducing conversely its strength because already the live chessdb is very large.
 
-##### Live Book Contribute
+#### Live Book Contribute
 
 _Boolean, Default: False_ If activated, the engine sends a move, not in live chessdb, in its queue to be analysed. In this manner, we have a kind of learning cloud.
 
-##### Live Book Depth
+#### Live Book Depth
 
-_Default 100, min 1, max 100_ Depth of live book moves.
+_Default 255, min 1, max 255_ Depth of live book moves.
 
 ### Opening variety
 
