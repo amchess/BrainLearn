@@ -123,17 +123,6 @@ struct Skill {
 };
 
 //opening variety begin
-// Random generators begin
-std::random_device& get_random_device() {
-    static std::random_device rd;
-    return rd;
-}
-
-std::mt19937& get_random_generator() {
-    static std::mt19937 gen(get_random_device()());
-    return gen;
-}
-//random generators end
 int openingVariety;
 //opening variety end
 
@@ -166,9 +155,10 @@ CURL*       g_cURL;
 std::string g_szRecv;
 std::string g_livebookURL = "http://www.chessdb.cn/cdb.php";
 int         g_inBook;
+//livebook depth begin
 int         livebook_depth_count = 0;
 int         max_book_depth;
-
+//livebook depth end
 size_t cURL_WriteFunc(void* contents, size_t size, size_t nmemb, std::string* s) {
     size_t newLength = size * nmemb;
     try
@@ -179,12 +169,23 @@ size_t cURL_WriteFunc(void* contents, size_t size, size_t nmemb, std::string* s)
     }
     return newLength;
 }
-void Search::setLiveBookURL(const std::string& newURL) { g_livebookURL = newURL; }
+    bool egtbs=false;
+    bool noEgtbs=false;
+    bool both=false;
+    bool off=false;
+void Search::setLiveBookURL(const std::string& newURL) { g_livebookURL = newURL; };
+void Search::set_livebook(const std::string& livebook) 
+{
+    egtbs=(livebook=="Egtbs")||(livebook=="Both");
+    noEgtbs=(livebook=="NoEgtbs");
+    both=(livebook=="Both");
+    off=(livebook=="Off");
+};
 void Search::setLiveBookTimeout(size_t newTimeoutMS) {
     curl_easy_setopt(g_cURL, CURLOPT_TIMEOUT_MS, newTimeoutMS);
-}
-void Search::set_livebook_retry(int retry) { g_inBook = retry; }
-void Search::set_livebook_depth(int book_depth) { max_book_depth = book_depth; }
+};
+void Search::set_livebook_depth(int book_depth) { max_book_depth = book_depth;}; //livebook depth
+void Search::set_g_inBook(int livebook_retry){g_inBook = livebook_retry;};
 #endif
 // livebook end
 //for learning begin
@@ -207,6 +208,7 @@ inline bool is_game_decided(const Position& pos, Value lastScore) {
     //Assume game is not decided!
     return false;
 }
+
 //for learning end
 //for mcts begin
 inline Value static_value(Position& pos, Stack* ss, int optimism) {
@@ -292,57 +294,67 @@ void Search::Worker::start_searching() {
         }
 // Live Book begin
 #ifdef USE_LIVEBOOK
-        if (think)
-        {
-            if (!bookMove)
+        if ((think) && (!bookMove))
+        {  
+            if (!off && g_inBook && !limits.infinite && !limits.mate)
             {
-                if (options["Live Book"] && g_inBook)
+                //livebook _depth begin
+                if (rootPos.game_ply() == 0)
+                    livebook_depth_count = 0;
+                if ((livebook_depth_count < max_book_depth)||(rootPos.count<ALL_PIECES>() <=7) )
                 {
-                    if (rootPos.game_ply() == 0)
-                        livebook_depth_count = 0;
-                    if (livebook_depth_count < max_book_depth)
+                //livebook _depth end
+                    CURLcode    res;
+                    char*       szFen = curl_easy_escape(g_cURL, rootPos.fen().c_str(), 0);
+                    std::string szURL = g_livebookURL + "?action="
+                                        + (options["Live Book Diversity"] ? "query" : "querybest")
+                                        + "&board=" + szFen;
+                    curl_free(szFen);
+                    curl_easy_setopt(g_cURL, CURLOPT_URL, szURL.c_str());
+                    g_szRecv.clear();
+                    res = curl_easy_perform(g_cURL);
+                    if (res == CURLE_OK)
                     {
-                        CURLcode    res;
-                        char*       szFen = curl_easy_escape(g_cURL, rootPos.fen().c_str(), 0);
-                        std::string szURL = g_livebookURL + "?action="
-                                          + (options["Live Book Diversity"] ? "query" : "querybest")
-                                          + "&board=" + szFen;
-                        curl_free(szFen);
-                        curl_easy_setopt(g_cURL, CURLOPT_URL, szURL.c_str());
-                        g_szRecv.clear();
-                        res = curl_easy_perform(g_cURL);
-                        if (res == CURLE_OK)
+                        g_szRecv.erase(std::find(g_szRecv.begin(), g_szRecv.end(), '\0'),
+                                        g_szRecv.end());
+                        std::string tmp ="";
+                        if (((noEgtbs || both) && (g_szRecv.find("move:") != std::string::npos))||
+                            ((egtbs || both) &&(g_szRecv.find("egtb:") != std::string::npos)))
                         {
-                            g_szRecv.erase(std::find(g_szRecv.begin(), g_szRecv.end(), '\0'),
-                                           g_szRecv.end());
-                            if (g_szRecv.find("move:") != std::string::npos)
-                            {
-                                std::string tmp = g_szRecv.substr(5);
-                                bookMove        = UCI::to_move(rootPos, tmp);
-                                livebook_depth_count++;
-                            }
+                            tmp = g_szRecv.substr(5);
+                        }
+                        if ((egtbs || both) && (g_szRecv.find("search:") != std::string::npos))
+                        {
+                            std::string delimiter = "|";
+                            size_t pos = g_szRecv.find(delimiter);
+                            tmp = g_szRecv.substr(g_szRecv.find(":") + 1, pos - g_szRecv.find(":") - 1);
+                        }
+                        if(!tmp.empty())
+                        {
+                            bookMove        = UCI::to_move(rootPos, tmp);
+                            livebook_depth_count++;//livebook_depth
                         }
                     }
-                    if (bookMove && std::count(rootMoves.begin(), rootMoves.end(), bookMove))
-                    {
-                        g_inBook = options["Live Book Retry"];
-                        think    = false;
-                        for (Thread* th : threads)
-                            std::swap(th->worker->rootMoves[0],
-                                      *std::find(th->worker->rootMoves.begin(),
-                                                 th->worker->rootMoves.end(), bookMove));
-                    }
-                    else
-                    {
-                        bookMove = Move::none();
-                        g_inBook--;
-                    }
+                }
+                if (bookMove && std::count(rootMoves.begin(), rootMoves.end(), bookMove))
+                {
+                    g_inBook = options["Live Book Retry"];
+                    think    = false;
+                    for (Thread* th : threads)
+                        std::swap(th->worker->rootMoves[0],
+                                    *std::find(th->worker->rootMoves.begin(),
+                                                th->worker->rootMoves.end(), bookMove));
+                }
+                else
+                {
+                    bookMove = Move::none();
+                    g_inBook--;
                 }
             }
         }
 #endif
         // Live Book end
-
+        
         //from Book and live book management begin
         if (!bookMove || think)
         {
@@ -457,7 +469,7 @@ void Search::Worker::start_searching() {
     // from Khalid end
 // livebook begin
 #ifdef USE_LIVEBOOK
-    if (options["Live Book"] && options["Live Book Contribute"] && !g_inBook)
+    if (!g_inBook && options["Live Book Contribute"])
     {
         char*       szFen = curl_easy_escape(g_cURL, rootPos.fen().c_str(), 0);
         std::string szURL = g_livebookURL + "?action=store" + "&board=" + szFen + "&move=move:"
@@ -805,11 +817,11 @@ void Search::Worker::clear() {
 #ifdef USE_LIVEBOOK
     curl_global_init(CURL_GLOBAL_DEFAULT);
     g_cURL = curl_easy_init();
-    curl_easy_setopt(g_cURL, CURLOPT_TIMEOUT_MS, 1000L);
+    curl_easy_setopt(g_cURL, CURLOPT_TIMEOUT_MS, 1500L);
     curl_easy_setopt(g_cURL, CURLOPT_WRITEFUNCTION, cURL_WriteFunc);
     curl_easy_setopt(g_cURL, CURLOPT_WRITEDATA, &g_szRecv);
-    set_livebook_retry((int) options["Live Book Retry"]);
-    set_livebook_depth((int) options["Live Book Depth"]);
+    g_inBook = (int)options["Live Book Retry"];
+    set_livebook_depth((int) options["Live Book Depth"]);//livebook depth
 #endif
     // livebook end
 }
@@ -2046,10 +2058,11 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
             // Range for openingVariety bonus
             const auto openingVarietyMinRange = thisThread->nodes / 2;
             const auto openingVarietyMaxRange = thisThread->nodes * 2;
-            // Distribution for openingVariety bonus
-            std::uniform_int_distribution<int> distribution(openingVarietyMinRange,
-                                                            openingVarietyMaxRange);
-            bestValue += distribution(get_random_generator()) % (openingVariety + 1);
+            static PRNG rng(now());
+            bestValue +=
+              static_cast<Value>(rng.rand<std::uint64_t>() % (openingVarietyMaxRange - openingVarietyMinRange + 1)
+                                 + openingVarietyMinRange)
+              % (openingVariety + 1);
         }
     }
     // end from Hypnos adapted
