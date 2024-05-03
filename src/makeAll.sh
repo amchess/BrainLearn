@@ -1,65 +1,65 @@
 make profile-build ARCH=x86-64-vnni COMP=gcc
 strip brainlearn
-mv 'brainlearn' 'Brainlearn28-x86-64-vnni'
+mv 'brainlearn' 'Brainlearn28.1-x86-64-vnni'
 make clean
 
 make profile-build ARCH=x86-64-avx512 COMP=gcc
 strip brainlearn
-mv 'brainlearn' 'Brainlearn28-x86-64-avx512'
+mv 'brainlearn' 'Brainlearn28.1-x86-64-avx512'
 make clean
 
 make profile-build ARCH=x86-64-bmi2 COMP=gcc
 strip brainlearn
-mv 'brainlearn' 'Brainlearn28-x86-64-bmi2'
+mv 'brainlearn' 'Brainlearn28.1-x86-64-bmi2'
 make clean
 
 make profile-build ARCH=x86-64-avx2 COMP=gcc
 strip brainlearn
-mv 'brainlearn' 'Brainlearn28-x86-64-avx2'
+mv 'brainlearn' 'Brainlearn28.1-x86-64-avx2'
 make clean
 
 make profile-build ARCH=x86-64-modern COMP=gcc
 strip brainlearn
-mv 'brainlearn' 'Brainlearn28-x86-64-modern'
+mv 'brainlearn' 'Brainlearn28.1-x86-64-modern'
 make clean
 
 make profile-build ARCH=x86-64-sse41-popcnt COMP=gcc
 strip brainlearn
-mv 'brainlearn' 'Brainlearn28-x86-64-sse41-popcnt'
+mv 'brainlearn' 'Brainlearn28.1-x86-64-sse41-popcnt'
 make clean
 
 make profile-build ARCH=x86-64-ssse3 COMP=gcc
 strip brainlearn
-mv 'brainlearn' 'Brainlearn28-x86-64-ssse3'
+mv 'brainlearn' 'Brainlearn28.1-x86-64-ssse3'
 make clean
 
 make profile-build ARCH=x86-64-sse3-popcnt COMP=gcc
 strip brainlearn
-mv 'brainlearn' 'Brainlearn28-x86-64-sse3-popcnt'
+mv 'brainlearn' 'Brainlearn28.1-x86-64-sse3-popcnt'
 make clean
 
 make profile-build ARCH=x86-64 COMP=gcc
 strip brainlearn
-mv 'brainlearn' 'Brainlearn28-x86-64'
+mv 'brainlearn' 'Brainlearn28.1-x86-64'
 make clean
 
 make profile-build ARCH=general-64 COMP=gcc
 strip brainlearn
-mv 'brainlearn' 'Brainlearn28-general-64'
+mv 'brainlearn' 'Brainlearn28.1-general-64'
 make clean
 
 make profile-build ARCH=x86-32 COMPCC=gcc
 strip brainlearn
-mv 'brainlearn' 'Brainlearn28-x86-32'
+mv 'brainlearn' 'Brainlearn28.1-x86-32'
 make clean
 
 make profile-build ARCH=x86-32-old COMPCC=gcc
 strip brainlearn
-mv 'brainlearn' 'Brainlearn28-x86-32-old'
+mv 'brainlearn' 'Brainlearn28.1-x86-32-old'
 make clean
 
 make profile-build ARCH=general-32 COMPCC=gcc
 strip brainlearn
-mv 'brainlearn' 'Brainlearn28-general-32'
+mv 'brainlearn' 'Brainlearn28.1-general-32'
 make clean
 
