@@ -6,15 +6,15 @@
 
   A free and strong UCI chess engine.
   <br>
-  <strong>[Explore Stockfish docs »][wiki-link]</strong>
+  <strong>[Explore Stockfish docs ï¿½][wiki-link]</strong>
   <br>
   <br>
   [Report bug][issue-link]
-  ·
+  ï¿½
   [Open a discussion][discussions-link]
-  ·
+  ï¿½
   [Discord][discord-link]
-  ·
+  ï¿½
   [Blog][website-blog-link]
 
   [![Build][build-badge]][build-link]
@@ -110,7 +110,7 @@ It is a collection of one or more positions stored with the following format (si
 - _board signature (hash key)_
 - _best move depth_
 - _best move score_
-- _best move performance_ , a new parameter you can calculate with any learning application supporting this specification. An example is the private one, kernel of SaaS part of [Alpha-Chess](http://www.alpha-chess.com) AI portal. The idea is to calculate it based on pattern recognition concept. In the portal, you can also exploit the reports of another NLG (virtual trainer) application and buy the products in the digishop based on all this. This open-source part has the performance default. So, it doesn't use it. Clearly, even if already strong, this private learning algorithm is a lot stronger as demostrate here: [Graphical result](https://github.com/amchess/BrainLearn/tree/master/tests/6-5.jpg)
+- _best move performance_ , a new parameter you can calculate with any learning application supporting this specification. An example is the private one, kernel of SaaS part of [Alpha-Chess](http://www.alpha-chess.com) AI portal. The idea is to update it based on pattern recognition concept. In the portal, you can also exploit the reports of another NLG (virtual trainer) application and buy the products in the digishop based on all this. This open-source part has the performance default, based on score and depth. You can align the performance by uci token quickresetexp. Clearly, even if already strong, this private learning algorithm is a lot stronger as demostrate here: [Graphical result](https://github.com/amchess/BrainLearn/tree/master/tests/6-5.jpg) The perfomance, in this case, is updated based on the latest Stockfish wdl model (score and material).
 
 This file is loaded in an hashtable at the engine load and updated each time the engine receive quit or stop uci command.
 When BrainLearn starts a new game or when we have max 8 pieces on the chessboard, the learning is activated and the hash table updated each time the engine has a best score
@@ -131,13 +131,6 @@ Because of disk access, less time the engine can think, less effective is the le
 
 Old versions had this experience file with a .bin extension, but now we added the bin book format support, so the extension is changed in .exp. So, old files can simply be renamed by changing this extension.
 
-#### Contempt
-The default value is 0 and keep it for analysis purpose. For game playing, you can use the default brainlearn value 24
-
-#### Dynamic contempt
-
-_Boolean, Default: True_ For match play, activate it and the engine uses the dynamic contempt. For analysis purpose; keep it at its default, to completely avoid, with contempt settled to 0, the well known [rollercoaster effect](http://talkchess.com/forum3/viewtopic.php?t=69129) and align so the engine's score to the gui's informator symbols
-
 ### Read only learning
 
 _Boolean, Default: False_ 
@@ -147,6 +140,17 @@ If activated, the learning file is only read.
 
 _Boolean, Default: False_ 
 If activated, the learning algorithm is the [Q-learning](https://youtu.be/qhRNvCVVJaA?list=PLZbbT5o_s2xoWNVdDudn51XM8lOuZ_Njv), optimized for self play. Some GUIs don't write the experience file in some game's modes because the uci protocol is differently implemented
+
+### Experience Book
+
+_Boolean, Default: False_ 
+If activated, the engine will use the experience file as the book. In choosing the move to play, the engine will be based first on maximum win probability, then, on the engine's internal score, and finally, on depth. The UCI token â€œshowexpâ€ allows the book to display moves on a given position.
+
+### Experience Book Max Moves
+
+_Integer, Default: 100, Min: 1, Max: 100_
+The maximum number of moves the engine chooses from the experience book
+
 
 ### MonteCarlo Tree Search section (experimental: thanks to original Stephan Nicolet work)
 #### MCTS (checkbox)
@@ -275,43 +279,56 @@ Despite the fact that Polyfish can read and play from CTG Book, it is not going 
 
 ### Live Book section (thanks to Eman's author Khalid Omar for windows builds)
 
-#### Live Book (checkbox)
+#### LiveBook Proxy Url
+_String, Default: "" (empty string)_  
+The proxy URL to use for the live book. If empty, no proxy is used. The proxy should use the ChessDB REST API format.
 
-Default is Off: no livebook. The other values are "NoEgtbs" (no livebook for an endgame with at max 7 mens), "Egtbs" (livebook only for an endgame with at max 7 mens) and "Both" (the livebook whenever is possible).
+#### LiveBook Proxy Diversity
+_Boolean, Default: False_  
+If enabled, the engine will play a random (best) move by the proxy (query and not querybest action).
 
-#### Live Book URL
-The default is the online chessdb [https://www.chessdb.cn/queryc_en/](https://www.chessdb.cn/queryc_en/), a wonderful project by noobpwnftw (thanks to him!)
- 
-[https://github.com/noobpwnftw/chessdb](https://github.com/noobpwnftw/chessdb)
-[http://talkchess.com/forum3/viewtopic.php?f=2&t=71764&hilit=chessdb](http://talkchess.com/forum3/viewtopic.php?f=2&t=71764&hilit=chessdb)
+#### LiveBook Lichess Games
+_Boolean, Default: False_  
+If enabled, the engine will use the Lichess live book by querying the Lichess API to access the game database available on the site. This option allows the engine to access a wide range of games played on Lichess to enhance its move choices.
 
-The private application can also learn from this live db.
+#### LiveBook Lichess Masters
+_Boolean, Default: False_  
+If enabled, the engine will use the Lichess live book specifically for masters' games. This allows the engine to analyze games played at a high level and utilize the best moves made by master-level players.
 
-#### Live Book Timeout
+#### LiveBook Lichess Player
+_String, Default: "" (empty string)_  
+The Lichess player name to use for the live book. If left empty, the engine will not query for the specific player's game data. This option is useful for studying or adapting the engine to a particular player's style.
 
-_Default 5000, min 0, max 10000_ Only for bullet games, use a lower value, for example, 1500.
+#### LiveBook Lichess Player Color
+_String, Default: "White"_  
+Specifies the color the engine will play as in the Lichess live book for the specified player.
+- **"White"**: The engine considers the games played by the specified player as White. When it's Black's turn, the move that performed best against the player will be chosen.
+- **"Black"**: The engine considers the games played by the specified player as Black. When it's White's turn, the move that performed best against the player will be chosen.
+- **"Both"**: The engine will always pretend to be the player, regardless of color, and choose the best-performing moves for the specified player.
 
-#### Live Book Retry
+#### LiveBook ChessDB
+_Boolean, Default: False_  
+If enabled, the engine will use the ChessDB live book by querying the ChessDB API.
 
-_Default 3, min 1, max 100_ Max times the engine tries to contribute (if the corresponding option is activated: see below) to the live book. If 0, the engine doesn't use the livebook.
+#### LiveBook Depth
+_Integer, Default: 255, Min: 1, Max: 255_  
+Specifies the depth to reach using the live book in plies. The depth determines how many half-moves the engine will consider from the current position.
 
-#### Live Book Diversity
+#### ChessDB Tablebase
+_Boolean, Default: False_  
+If enabled, allows the engine to query the ChessDB API for Tablebase data, up to 7 pieces. This provides perfect endgame knowledge for positions with up to 7 pieces.
 
-_Boolean, Default: False_ If activated, the engine varies its play, reducing conversely its strength because already the live chessdb is very large.
+#### Lichess Tablebase
+_Boolean, Default: False_  
+If enabled, allows the engine to query the Lichess API for Tablebase data, up to 7 pieces. This option also provides perfect endgame knowledge for positions with up to 7 pieces.
 
-#### Live Book Contribute
+#### ChessDB Contribute
+_Boolean, Default: False_  
+If enabled, allows the engine to store a move in the queue of ChessDb to be analyzed.
 
-_Boolean, Default: False_ If activated, the engine sends a move, not in live chessdb, in its queue to be analysed. In this manner, we have a kind of learning cloud.
+### Variety  (checkbox)
 
-#### Live Book Depth
-
-_Default 255, min 1, max 255_ Depth of live book moves.
-
-### Opening variety
-
-_Integer, Default: 0, Min: 0, Max: 40_
-To play different opening lines from default (0), if not from book (see below).
-Higher variety -> more probable loss of ELO
+Default is Off: no variety. The other values are "Standard" (no elo loss: randomicity in Capablanca zone) and Psychological (randomicity in Caos zones max).
 
 ### Concurrent Experience
 
