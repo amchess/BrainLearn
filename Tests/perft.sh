@@ -13,7 +13,7 @@ echo "perft testing started"
 cat << EOF > perft.exp
    set timeout 10
    lassign \$argv pos depth result
-   spawn ./brainlearn
+   spawn ./stockfish
    send "position \$pos\\ngo perft \$depth\\n"
    expect "Nodes searched? \$result" {} timeout {exit 1}
    send "quit\\n"

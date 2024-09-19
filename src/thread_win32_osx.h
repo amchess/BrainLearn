@@ -1,6 +1,6 @@
 /*
   Brainlearn, a UCI chess playing engine derived from Stockfish
-  Copyright (C) 2004-2024 Andrea Manzo, K.Kiniama and Brainlearn developers (see AUTHORS file)
+  Copyright (C) 2004-2024 A.Manzo, F.Ferraguti, K.Kiniama and Brainlearn developers (see AUTHORS file)
 
   Brainlearn is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by

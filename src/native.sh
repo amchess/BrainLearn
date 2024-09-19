@@ -1,7 +1,6 @@
-@echo off
-REM make -j profile-build
-make profile-build ARCH=native COMP=gcc
+# make -j profile-build
+make profile-build ARCH=native COMP=gcc  -j$(nproc)
 strip brainlearn
-ren brainlearn Brainlearn28.1-native
+mv brainlearn Brainlearn28-native
 make clean
-pause
+
