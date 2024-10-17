@@ -4,6 +4,6 @@ SET PATH=C:\tools\msys64\mingw64\bin;C:\tools\msys64\usr\bin;%PATH%
 Title "x86-64-avx512"
 mingw32-make profile-build ARCH=x86-64-avx512 COMP=mingw CXX=x86_64-w64-mingw32-g++ -j %Number_Of_Processors%
 strip brainlearn.exe
-ren brainlearn.exe "Brainlearn29-x86-64-avx512.exe"
+ren brainlearn.exe "BrainlearnSantiago-x86-64-avx512.exe"
 make clean
 pause

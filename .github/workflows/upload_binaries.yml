@@ -59,6 +59,7 @@ jobs:
           mv "${{ matrix.config.simple_name }} ${{ matrix.binaries }}" brainlearn-workflow
           cd brainlearn-workflow
           cp -r src ../brainlearn/
+          cp -r scripts ../brainlearn/
           cp brainlearn-$NAME-$BINARY$EXT ../brainlearn/
           cp "Top CPU Contributors.txt" ../brainlearn/
           cp Copying.txt ../brainlearn/
