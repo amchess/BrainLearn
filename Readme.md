@@ -151,6 +151,11 @@ If activated, the engine will use the experience file as the book. In choosing t
 _Integer, Default: 100, Min: 1, Max: 100_
 The maximum number of moves the engine chooses from the experience book
 
+### Experience Book Min Depth
+
+_Integer, Default: 4, Min: 1, Max: 255_
+The min depth for the experience book
+
 
 ### MonteCarlo Tree Search section (experimental: thanks to original Stephan Nicolet work)
 #### MCTS (checkbox)
@@ -370,7 +375,7 @@ descriptions. An example suitable for most Intel and AMD chips:
 
 ```
 cd src
-make -j profile-build ARCH=x86-64-avx2
+make -j profile-build
 ```
 
 Detailed compilation instructions for all platforms can be found in our
